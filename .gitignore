@@ -30,3 +30,26 @@
 
 # Debug files
 *.dSYM/
+
+# Self + auto make stuff
+.gitignore
+Makefile
+autom4te.cache/
+autoscan.log
+conf/Makefile
+config.h
+config.log
+config.status
+configure.scan
+doc/Makefile
+doc/xjackfreak.xcf
+src/.deps/
+src/Makefile
+src/xjackfreak
+src/xjackfreak-fftlib1.o
+src/xjackfreak-xjackfreak1.o
+src/xjackfreak.rc
+stamp-h1
+xjackfreak-1.0.tar.bz2
+xjackfreak-1.0.tar.gz
+xjackfreak.rc
