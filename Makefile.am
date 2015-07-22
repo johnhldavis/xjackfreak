@@ -1,0 +1,2 @@
+SUBDIRS = src conf doc
+EXTRA_DIST = LICENSE

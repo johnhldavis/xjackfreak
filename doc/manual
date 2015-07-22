@@ -1,0 +1,111 @@
+
+XJackFreak V1.0
+---------------
+
+Copyright (C) 1996-2015  J.Davis dev@mirainet.org.uk   
+
+
+XJackFreak is audio analysis/EQ tool for Linux/Jack Audio Connection Kit.
+
+It can display the FFT of any input, modify it and output the result.
+
+See xjackfreak.png for a nice picture !
+
+Here is a summary of the controls with some extra notes.
+
+Window controls:
+----------------
+B - Bypass on/off   - change "delay bypass" param to include FFT lag when in bypass mode
+G - Grid on/off     - will display a nice grid
+M - EQ on/off       - also know as mod_data[] - drag the cursor over the screen to alter EQ. It's a bit primitive but the
+                      the 'smooth' function below can help out here.A thumb wheel should also work here. There are 3
+                      different smoothing functions accessible by changing the "smooth fn" param.
+                      This EQ data is also saved/loaded in an RC file which can be edited by hand and RC files can be
+                      specfied on the command line with the "-rc <rc_file>" switch.
+                      Press this button again to display input & output gain. These can be changed with the cursor.
+L - X-Y on/off      - also known a Lissajous figures
+I - Input on/off    - display input on/off. Change "display chan" param to select L or R (in stereo mode).
+F - FFT on/off      - this is the pre-eq FFT - the X,Y,A,B,C & L buttons below control how this is displayed
+P - FFT on/off      - this is the post-eq FFT
+O - Onput on/off    - display output on/off
+
+X - Log/lin X-axis  - log or linear range on X-axis. Cursoring over display shows freq in either mode.
+Y - Log/lin Y-axis  - log or linear range on Y-axis. Check the "log rang" param.
+A - Average on/off  - averaging is performed if needed. Check the "ave ratio" to speficy how many windows to average together.
+B - Block/line mode - draw as rectangular blocks. Only noticeable in log-x mode.
+C - HF compensation - High frequency compensation. Boosts the HF end as they can be difficult to see. Display only.
+L - Link FFTs       - use the same max signal to display both FFTs or their own.
+
+S - Smooth          - smooth out EQ mod_data[]
+R - Reset           - reset EQ mod_data[] and input/output gain
+0 - Draw buf        - if FFT display is on, this displays a copy of the FFT signal and window applied. Press 'n' to load
+                      a new frame. The FFT window can be changed via the "dwin" param.
+                      if FFT display is not on, this displays the input/output buffers and then L-R can be used to select
+                      different frames to display.
+L - Param select    - use this functions to select and change internal parameters. A list of all params is below.
+R - Param select
+U - Param UP
+P - Param DOWN
+
+
+Keyboard controls:
+------------------
+'q'/'Q'/'ctrl-c'/ESC - quit app
+'+'                  - increase frame rate of display
+'-'                  - decrease frame rate of display
+' '                  - start/stop display
+'n'                  - display next frame
+
+Command line controls:
+----------------------
+-fps <fps>   - set frame rate
+-debug       - debug mode
+-?/-h/--help - print help
+-n <num>     - size of fft (def=1024 samples) - must be power of 2 & <=jack_frame_size
+-jack        - dont connect to jack
+-rc          - specify an RC file to load/save
+-noshm       - dont use X11 SHM
+-lag         - set lag
+-mono        - mono mode
+
+
+Internal parameters:
+--------------------
+"display chan" - L or R if in stero mode
+"log rang"     - Y-axis range (in log mode)
+"freq comp"    - HF compenstio (for display only)
+
+"dwin"         - data window. Can slect one of Hann,Bartlett,Hann #2,Welch or square. Hann#2 is Hann^2.
+
+"ave ratio"    - how many windows to use in the running average
+"smooth fn"    - select 1 of 3 smoothing functions
+"delay bypass" - allow for FFT delay in bypass mode
+
+"max decay0"   - see below
+"max decay1"   -  "    "
+"max decay1"   -  "    "
+
+"max_mode"     - 0,1,2  - slightly different modes to calc fft max (for display purposes). They all use
+                 the max_decay figures above to help auto-zoom the linear y-axis
+
+"grd1 RED"     - the rest of these are the colour components of the various things displayed
+"grd1 GRN"     - 
+"grd1 BLU"     - 
+"grd2 RED"     - 
+"grd2 GRN"     - 
+"grd2 BLU"     - 
+"mod  RED"     - 
+"mod  GRN"     - 
+"mod  BLU"     - 
+"inp  RED"     - 
+"inp  GRN"     - 
+"inp  BLU"     - 
+"FFT1 RED"     - 
+"FFT1 GRN"     - 
+"FFT1 BLU"     - 
+"FFT2 RED"     - 
+"FFT2 GRN"     - 
+"FFT2 BLU"     - 
+"out  RED"     - 
+"out  GRN"     - 
+"out  BLU"     - 

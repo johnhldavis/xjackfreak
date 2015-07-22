@@ -1,0 +1,25 @@
+
+XJackFreak V1.0
+---------------
+
+Copyright (C) 1996-2015  J.Davis dev@mirainet.org.uk   
+
+
+XJackFreak is audio analysis/EQ tool for Linux/Jack Audio Connection Kit.
+
+It can display the FFT of any input, modify it and output the result.
+
+See docs/xjackfreak.png for a nice picture  and docs/manual for more info.
+
+
+Install is as per usual:
+
+./configure
+make
+make install
+
+
+The only dependencies are the Jack Audio Connection Kit and the C library.
+Any probs, then email me.
+
+Have fun!
