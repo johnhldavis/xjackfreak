@@ -19,7 +19,7 @@ make
 make install
 
 
-The only dependencies are the Jack Audio Connection Kit and the C library.
+The only dependencies are the C library, X11 & Jack Audio Connection Kit.
 Any probs, then email me.
 
 Have fun!
