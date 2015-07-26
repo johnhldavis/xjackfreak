@@ -1,0 +1,6 @@
+
+26th July 2015
+--------------
+
+-allow user to resize window (or allow setting width/height on CLI).
+-we detect BYTE_ORDER but don't do anything with it!!
