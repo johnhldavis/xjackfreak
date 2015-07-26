@@ -13,6 +13,8 @@ AC_PROG_CC
 
 # Checks for libraries.
 PKG_CHECK_MODULES([jack], [jack >= 0.116.1])
+PKG_CHECK_MODULES([x11], [x11 >= 1.3.4])
+PKG_CHECK_MODULES([xext], [xext >= 1.1.2])
 AC_SEARCH_LIBS([pthread_create],[pthread],,[exit],)
 AC_SEARCH_LIBS([rint],[m],,[exit],)
 AC_SEARCH_LIBS([mq_open],[rt],,[exit],)
