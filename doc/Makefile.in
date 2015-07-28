@@ -132,7 +132,7 @@ build_alias = @build_alias@
 builddir = @builddir@
 datadir = @datadir@
 datarootdir = @datarootdir@
-docdir = /usr/share/doc/xjackfreak-v1.1
+docdir = /usr/share/doc/${PACKAGE}-${PACKAGE_VERSION}
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
 host_alias = @host_alias@
@@ -161,10 +161,6 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-x11_CFLAGS = @x11_CFLAGS@
-x11_LIBS = @x11_LIBS@
-xext_CFLAGS = @xext_CFLAGS@
-xext_LIBS = @xext_LIBS@
 dist_doc_DATA = licence xjackfreak.png manual
 all: all-am
 

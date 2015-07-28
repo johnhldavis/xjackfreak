@@ -19,11 +19,11 @@
 *
 ****************************************************************************/
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/StringDefs.h>
-#include <X11/Xatom.h>
-#include <X11/extensions/XShm.h>
+//#include <X11/Xlib.h>
+//#include <X11/Xutil.h>
+//#include <X11/StringDefs.h>
+//#include <X11/Xatom.h>
+//#include <X11/extensions/XShm.h>
 
 struct _fmt
 	{
@@ -153,7 +153,7 @@ Visual *visual_init()
 	if (format==0)
 		{
 		fprintf(stderr, "xjackfreak: sorry, I can't handle your strange display!\n");
-		exit(10);
+		exit(16);
 		return NULL;
 		}
 	x11_dpy_fmtid=format;

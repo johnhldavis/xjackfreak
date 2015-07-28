@@ -19,12 +19,6 @@
 *
 ****************************************************************************/
 
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <jack/jack.h>
 
 #define MAX_REC_BUF 1048576
@@ -64,7 +58,8 @@ float audio_out[2][MAX_SFRAG_SIZE];			// 2 channels of audio output
 int   audio_ird=0,audio_iwr=0;				// audio in  rd/wr indexes
 int   audio_ord=0,audio_owr=0;				// audio out rd/wr indexes
 int 	audio_disp_ch=0;
-int	audio_data_window=0;						// start up with Bartlett
+int	audio_data_window=0;						// start up with Hann
+int   audio_data_merge=0;						// 0=add o/p   1=xfade o/p   2=ave o/p
 
 int audio_roff=0;
 
@@ -298,14 +293,35 @@ int output_mix_frame_stereo(jack_nframes_t nframes,void *arg)
 // do inv_fft
 		inv_fast_fourier(fft_size,fft_places);
 
-// xfade first half: write second half
-		for (j=0;j<fft_size2;j++)
+// merge first half: write second half
+		if (audio_data_merge==0)			// addition
 			{
-			tmpf1=(double)j/(double)fft_size2;
-			tmpf2=1.0f-tmpf1;
-			ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
-			audio_out[0][ioff]=tmpf2*audio_out[0][ioff]+tmpf1*outr[j];
-			audio_out[1][ioff]=tmpf2*audio_out[1][ioff]+tmpf1*outi[j];
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				audio_out[0][ioff]=audio_out[0][ioff]+outr[j];
+				audio_out[1][ioff]=audio_out[1][ioff]+outi[j];
+				}
+			}
+		else if (audio_data_merge==1)		// xfade
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				tmpf1=(double)j/(double)(fft_size2-1);
+				tmpf2=1.0f-tmpf1;
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				audio_out[0][ioff]=tmpf2*audio_out[0][ioff]+tmpf1*outr[j];
+				audio_out[1][ioff]=tmpf2*audio_out[1][ioff]+tmpf1*outi[j];
+				}
+			}
+		else if (audio_data_merge==2)		// average
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				audio_out[0][ioff]=(audio_out[0][ioff]+outr[j])/2.0f;
+				audio_out[1][ioff]=(audio_out[1][ioff]+outi[j])/2.0f;
+				}
 			}
 		ioff=(audio_owr+fft_size4)%MAX_SFRAG_SIZE;
 		memcpy(&audio_out[0][ioff],&outr[fft_size2],fft_size);
@@ -506,13 +522,32 @@ int output_mix_frame_mono(jack_nframes_t nframes,void *arg)
 // do inv_fft
 		inv_fast_fourier(fft_size,fft_places);
 
-// xfade first half: write second half
-		for (j=0;j<fft_size2;j++)
+// merge first half: write second half
+		if (audio_data_merge==0)			// addition
 			{
-			tmpf1=(double)j/(double)fft_size2;
-			tmpf2=1.0f-tmpf1;
-			ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
-			audio_out[0][ioff]=tmpf2*audio_out[0][ioff]+tmpf1*outr[j];
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				audio_out[0][ioff]=audio_out[0][ioff]+outr[j];
+				}
+			}
+		else if (audio_data_merge==1)		// xfade
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				tmpf1=(double)j/(double)(fft_size2-1);
+				tmpf2=1.0f-tmpf1;
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				audio_out[0][ioff]=tmpf2*audio_out[0][ioff]+tmpf1*outr[j];
+				}
+			}
+		else if (audio_data_merge==2)		// average
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				audio_out[0][ioff]=(audio_out[0][ioff]+outr[j])/2.0f;
+				}
 			}
 		ioff=(audio_owr+fft_size4)%MAX_SFRAG_SIZE;
 		memcpy(&audio_out[0][ioff],&outr[fft_size2],fft_size);
@@ -574,26 +609,26 @@ int output_mix_frame_mono(jack_nframes_t nframes,void *arg)
 void jack_shutdown(void *arg)
 	{
 	if (debug) fprintf(stderr,"jack_shutdown called!\n");
-	exit (1);
+	exit(12);
 	}
 
-int connect_to_jack(char *_str,int lag,int stereo)
+int connect_to_jack(char *_str,int stereo)
 	{
 	if (debug) fprintf(stderr,"connect_to_jack(%s)",_str);
-	if ((client = jack_client_open(_str,0,NULL)) == 0)
+	if ((client=jack_client_open(_str,0,NULL)) == 0)
 		{
 		if (debug) fprintf (stderr, " [FAIL]\n");
 		return 1;
 		}
 	else 	if (debug) fprintf(stderr," [OK]\n");
-	jack_buf_size = jack_get_buffer_size(client);
+	jack_buf_size=jack_get_buffer_size(client);
 	if (debug) fprintf(stderr,"jack buf_size=%lu\n",(unsigned long)jack_buf_size);
 	jack_sample_rate=jack_get_sample_rate(client);
 	if (debug) fprintf(stderr,"jack rate=%lu\n",(unsigned long)jack_sample_rate);
 	if ((!jack_buf_size) || (!jack_sample_rate))
 		{
 		fprintf(stderr,"bad buf_size or sample rate!\n");
-		exit(1);
+		exit(13);
 		}
 	if (stereo) jack_set_process_callback(client,output_mix_frame_stereo,0);
 	else jack_set_process_callback(client,output_mix_frame_mono,0);
@@ -640,20 +675,19 @@ int activate_jack()
 	jack_frag_size=(int)jack_buf_size*sizeof(jack_default_audio_sample_t);
 	jack_frame_size=(int)jack_buf_size;
 	if (jack_frame_size!=0) jack_frame_rate=jack_sample_rate/jack_frame_size;
-	if (jack_frag_size>MAX_FRAG_SIZE)
+	if (jack_frame_size>MAX_FRAG_SIZE)
 		{
-		fprintf(stderr,"Blimey, your frag_size of %d is too large! Please recompile.\n",jack_frag_size);
+		fprintf(stderr,"Blimey, your frame_size of %d is too large! Please recompile.\n",jack_frag_size);
 		fprintf(stderr,"Disconnecting from jack");
 		jack_client_close(client);
 		fprintf(stderr," [done]\n");
 		debug=1;
 		fprintf(stderr,"*** Shutdown ***\nSee ya next time.\n");
 		printf("\n*** Shutdown ***\nSee ya next time.\n");
-		exit(0);
+		exit(14);
 		}
 
 // re-adjust LAG to allow FFT frames bigger than jack frame size ...
-
 	if (jack_frame_size<fft_size)
 		{
 		printf("Doing FFT with frame (%d) > jack_frame (%d): re-adjusting LAG\n",fft_size,jack_frame_size);

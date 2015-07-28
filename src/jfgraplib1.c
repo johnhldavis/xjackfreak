@@ -69,7 +69,7 @@ void graph_init(int depth)
 	if ((depth!=32) && (depth!=16))
 		{
 		fprintf(stderr,"Cannot handle your strange depth! (%d)\n",depth);
-		exit(1);
+		exit(15);
 		}
 	dot1=&(_dot_null);
 	dot2=&(_dot_null);
