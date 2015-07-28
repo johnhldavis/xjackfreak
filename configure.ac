@@ -1,5 +1,3 @@
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.66])
 AC_INIT([xjackfreak], [1.0], [dev@mirainet.org.uk])
@@ -13,11 +11,11 @@ AC_PROG_CC
 
 # Checks for libraries.
 PKG_CHECK_MODULES([jack], [jack >= 0.116.1])
-PKG_CHECK_MODULES([x11], [x11 >= 1.3.4])
-PKG_CHECK_MODULES([xext], [xext >= 1.1.2])
 AC_SEARCH_LIBS([pthread_create],[pthread],,[exit],)
 AC_SEARCH_LIBS([rint],[m],,[exit],)
 AC_SEARCH_LIBS([mq_open],[rt],,[exit],)
+AC_SEARCH_LIBS([XOpenDisplay],[X11],,[exit],)
+AC_SEARCH_LIBS([XShmPutImage],[Xext],,[exit],)
 
 # Checks for header files.
 AC_PATH_X

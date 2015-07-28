@@ -21,25 +21,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-#include <time.h>
 #include <math.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/time.h>
-#include <sys/ipc.h>
 #include <sys/shm.h>
-
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/soundcard.h>
-#include <setjmp.h>
-#include <fcntl.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -55,6 +43,7 @@
 // audio limits
 #define MAX_FRAG_SIZE 8192		// jack frame size
 #define MAX_SFRAG_SIZE 32768	// super-frame size
+
 #define MAX_JACK_PORTS 2
 
 #define FFT_FREQ_DISP_COMP 10
@@ -99,9 +88,7 @@ void draw_status_put();
 void draw_status_controls_put();
 void draw_status_controls_main_put();
 
-
 // various display options
-
 double fps=25.0f;
 // == 96 dB
 double log_rangey=-53.333;
@@ -119,7 +106,7 @@ int  do_intro=1;
 int  disp_max=0;
 int  stereo_mode=1;
 int  edit_param=0;
-#define EDIT_PARAM_MAX 30
+#define EDIT_PARAM_MAX 31
 
 int old_but_x=0,old_but_y=0;
 
@@ -367,6 +354,8 @@ void do_display()
 	log_rangex=log10(tmpd)-log_offx;
 	log_rangex=(510.0f-lin_offx)/log_rangex;
 
+//printf("DD:lin_offx=%f lin_rangex=%f  log_offx=%f log_rangex=%f\n",lin_offx,lin_rangex,log_offx,log_rangex);
+
 //	draw phase here
 	if (BUT_PHASE)
 		{
@@ -472,7 +461,7 @@ void do_display()
 			else line(0,275,oldpos,oldy,cols[COL_FFT1].r,cols[COL_FFT1].g,cols[COL_FFT1].b);
 			}
 		else line(0,oldy,oldpos,oldy,cols[COL_FFT1].r,cols[COL_FFT1].g,cols[COL_FFT1].b);
-		for (i=1;i<fft_size2;i++)
+		for (i=1;i<=fft_size2;i++)
 			{
 			tmpd=mmdata[iframe][i];
 			tmpd=tmpd/mmax_al1;
@@ -552,7 +541,7 @@ void do_display()
 			else line(0,275,oldpos,oldy,cols[COL_FFT2].r,cols[COL_FFT2].g,cols[COL_FFT2].b);
 			}
 		else line(0,oldy,oldpos,oldy,cols[COL_FFT2].r,cols[COL_FFT2].g,cols[COL_FFT2].b);
-		for (i=1;i<fft_size/2;i++)
+		for (i=1;i<=fft_size2;i++)
 			{
 			tmpd=mmdata[iframe][i];
 			tmpd=mod_data[i]*tmpd/mmax_tmp;
@@ -657,20 +646,20 @@ void draw_status()
 void draw_controls_post()
 	{
 // button legends
-	if (BUT_BYPASS) XDrawString(dpy,win,gc2, 11,17,"B",1); else XDrawString(dpy,win,gc2, 11,17,"B",1);
-	if (BUT_GRID  ) XDrawString(dpy,win,gc2, 29,17,"G",1); else XDrawString(dpy,win,gc2, 29,17,"G",1);
-	if (BUT_MOD   ) XDrawString(dpy,win,gc2, 47,17,"M",1); else XDrawString(dpy,win,gc2, 47,17,"M",1);
-	if (BUT_PHASE ) XDrawString(dpy,win,gc2, 65,17,"L",1); else XDrawString(dpy,win,gc2, 65,17,"L",1);
-	if (BUT_INPUT ) XDrawString(dpy,win,gc2, 83,17,"I",1); else XDrawString(dpy,win,gc2, 83,17,"I",1);
-	if (BUT_FFT1  ) XDrawString(dpy,win,gc2,101,17,"F",1); else XDrawString(dpy,win,gc2,101,17,"F",1);
-	if (BUT_FFT2  ) XDrawString(dpy,win,gc2,119,17,"P",1); else XDrawString(dpy,win,gc2,119,17,"P",1);
-	if (BUT_OUTPUT) XDrawString(dpy,win,gc2,137,17,"O",1); else XDrawString(dpy,win,gc2,137,17,"O",1);
-	if (BUT_X_LOG ) XDrawString(dpy,win,gc2,155,17,"X",1); else XDrawString(dpy,win,gc2,155,17,"X",1);
-	if (BUT_Y_LOG ) XDrawString(dpy,win,gc2,173,17,"Y",1); else XDrawString(dpy,win,gc2,173,17,"Y",1);
-	if (BUT_FFTAVE) XDrawString(dpy,win,gc2,191,17,"A",1); else XDrawString(dpy,win,gc2,191,17,"A",1);
-	if (BUT_BLOCK ) XDrawString(dpy,win,gc2,209,17,"B",1); else XDrawString(dpy,win,gc2,209,17,"B",1);
-	if (BUT_HFCOMP) XDrawString(dpy,win,gc2,227,17,"C",1); else XDrawString(dpy,win,gc2,227,17,"C",1);
-	if (BUT_LINK  ) XDrawString(dpy,win,gc2,245,17,"L",1); else XDrawString(dpy,win,gc2,245,17,"L",1);
+	if (BUT_BYPASS) XDrawString(dpy,win,gc2, 11,17,"B",1); else XDrawString(dpy,win,gc3, 11,17,"B",1);
+	if (BUT_GRID  ) XDrawString(dpy,win,gc2, 29,17,"G",1); else XDrawString(dpy,win,gc3, 29,17,"G",1);
+	if (BUT_MOD   ) XDrawString(dpy,win,gc2, 47,17,"M",1); else XDrawString(dpy,win,gc3, 47,17,"M",1);
+	if (BUT_PHASE ) XDrawString(dpy,win,gc2, 65,17,"L",1); else XDrawString(dpy,win,gc3, 65,17,"L",1);
+	if (BUT_INPUT ) XDrawString(dpy,win,gc2, 83,17,"I",1); else XDrawString(dpy,win,gc3, 83,17,"I",1);
+	if (BUT_FFT1  ) XDrawString(dpy,win,gc2,101,17,"F",1); else XDrawString(dpy,win,gc3,101,17,"F",1);
+	if (BUT_FFT2  ) XDrawString(dpy,win,gc2,119,17,"P",1); else XDrawString(dpy,win,gc3,119,17,"P",1);
+	if (BUT_OUTPUT) XDrawString(dpy,win,gc2,137,17,"O",1); else XDrawString(dpy,win,gc3,137,17,"O",1);
+	if (BUT_X_LOG ) XDrawString(dpy,win,gc2,155,17,"X",1); else XDrawString(dpy,win,gc3,155,17,"X",1);
+	if (BUT_Y_LOG ) XDrawString(dpy,win,gc2,173,17,"Y",1); else XDrawString(dpy,win,gc3,173,17,"Y",1);
+	if (BUT_FFTAVE) XDrawString(dpy,win,gc2,191,17,"A",1); else XDrawString(dpy,win,gc3,191,17,"A",1);
+	if (BUT_BLOCK ) XDrawString(dpy,win,gc2,209,17,"B",1); else XDrawString(dpy,win,gc3,209,17,"B",1);
+	if (BUT_HFCOMP) XDrawString(dpy,win,gc2,227,17,"C",1); else XDrawString(dpy,win,gc3,227,17,"C",1);
+	if (BUT_LINK  ) XDrawString(dpy,win,gc2,245,17,"L",1); else XDrawString(dpy,win,gc3,245,17,"L",1);
 	XDrawString(dpy,win,gc1,263,17,"S",1);
 	XDrawString(dpy,win,gc1,281,17,"R",1);
 	}
@@ -706,9 +695,11 @@ float lindB_to_log(float inp)
 
 float log_to_lindB(float inp)
 	{
-	float val=inp;
+	float val=fabs(inp);
 
-	if (inp!=0.0f) val=(10.0*log10(inp)/24.0f)+1.0f;
+	if (inp==0.0f) return inp;
+	val=(10.0*log10(val)/24.0f)+1.0f;
+	if (inp<0.0f) return -val;
 	return val;
 	}
 
@@ -771,6 +762,12 @@ int save_settings(char *fname)
 		case 3: fprintf(fp,"dwin=3 (Welch)\n");
 		case 4: fprintf(fp,"dwin=4 (square)\n");
 		}
+	switch (audio_data_merge)
+		{
+		case 0: fprintf(fp,"dmerge=0 (add)\n"); break;
+		case 1: fprintf(fp,"dmerge=1 (xfade)\n"); break;
+		case 2: fprintf(fp,"dmerge=2 (ave)\n"); break;
+		}
 	fprintf(fp,"ave_ratio=%d\n",fft_ave_ratio);
 	fprintf(fp,"smooth_fn=%d\n",smooth_func);
 	fprintf(fp,"delay_bypass=%d\n",delay_bypass);
@@ -811,7 +808,7 @@ int load_settings(char *fname)
 	FILE *fp;
 	double tmpf;
 	char *ptr,*ptr2,t_str[256];
-	int num,idx;
+	int num,idx,new_fft_size;
 
 	if ((fp=fopen(fname,"r"))==NULL) return 1;
 	while (!feof(fp))
@@ -821,11 +818,12 @@ int load_settings(char *fname)
 			{
 			*ptr=0;
 			ptr++;
-			if (strcmp(t_str,"fft_size")==0)       { fft_size=atoi(ptr);           if (debug) printf("READ: fft_size=%d\n",fft_size); }
+			if (strcmp(t_str,"fft_size")==0)       { new_fft_size=atoi(ptr);       if (debug) printf("READ: fft_size=%d\n",new_fft_size); }
 			if (strcmp(t_str,"display_ch")==0)     { audio_disp_ch=atoi(ptr);      if (debug) printf("READ: display_ch=%d\n",audio_disp_ch); }
 			if (strcmp(t_str,"log_range")==0)      { log_rangey=atof(ptr);         if (debug) printf("READ: log_range=%f\n",log_rangey); }
 			if (strcmp(t_str,"freq_comp")==0)      { fft_freq_disp_comp=atoi(ptr); if (debug) printf("READ: freq_comp=%d\n",fft_freq_disp_comp); }
 			if (strcmp(t_str,"dwin")==0)           { audio_data_window=atoi(ptr);  if (debug) printf("READ: dwin=%d\n",audio_data_window); }
+			if (strcmp(t_str,"dmerge")==0)         { audio_data_merge=atoi(ptr);   if (debug) printf("READ: dmerge=%d\n",audio_data_merge); }
 			if (strcmp(t_str,"ave_ratio")==0)      { fft_ave_ratio=atoi(ptr);      if (debug) printf("READ: ave_ratio=%d\n",fft_ave_ratio); }
 			if (strcmp(t_str,"smooth_fn")==0)      { smooth_func=atoi(ptr);        if (debug) printf("READ: smooth_func=%d\n",smooth_func); }
 			if (strcmp(t_str,"delay_bypass")==0)   { delay_bypass=atoi(ptr);       if (debug) printf("READ: delay_bypass=%d\n",delay_bypass); }
@@ -1007,7 +1005,7 @@ void load_skin(char *skin)
 	if (load_ppm(skin))
 		{
 		fprintf(stderr,"xjackfreak: Cannot load skin [%s]!\n",skin);
-		exit(1);
+		exit(3);
 		}
 	}
 
@@ -1039,17 +1037,25 @@ void print_edit_param(int ep)
 		case  3:
 			switch (audio_data_window)
 				{
-				case 0: sprintf(status_line,"dwin: 0: Hann"); break;
-				case 1: sprintf(status_line,"dwin: 1: Bartlett"); break;
-				case 2: sprintf(status_line,"dwin: 2: Hann #2"); break;
-				case 3: sprintf(status_line,"dwin: 3: Welch"); break;
-				case 4: sprintf(status_line,"dwin: 4: square"); break;
+				case 0: sprintf(status_line,"dw:0 Hann (cos)"); break;
+				case 1: sprintf(status_line,"dw:1 Bartlett (tri)"); break;
+				case 2: sprintf(status_line,"dw:2 Hann#2 (cos^2)"); break;
+				case 3: sprintf(status_line,"dw:3 Welch (N^2 poly)"); break;
+				case 4: sprintf(status_line,"dw:4 square"); break;
 				}
 			break;
-		case  4: sprintf(status_line,"ave ratio: %d",fft_ave_ratio); break;
-		case  5: sprintf(status_line,"smooth fn: %d",smooth_func); break;
-		case  6: sprintf(status_line,"delay bypass: %d",delay_bypass); break;
-		case  7: 
+		case  4:
+			switch (audio_data_merge)
+				{
+				case 0: sprintf(status_line,"dmerge: 0: add"); break;
+				case 1: sprintf(status_line,"dmerge: 1: xfade"); break;
+				case 2: sprintf(status_line,"dmerge: 2: ave"); break;
+				}
+			break;
+		case  5: sprintf(status_line,"ave ratio: %d",fft_ave_ratio); break;
+		case  6: sprintf(status_line,"smooth fn: %d",smooth_func); break;
+		case  7: sprintf(status_line,"delay bypass: %d",delay_bypass); break;
+		case  8: 
 			switch (max_mode)
 				{
 				case 0: sprintf(status_line,"max decay0: %6.5f",mmax_all_decay0); break;
@@ -1057,28 +1063,28 @@ void print_edit_param(int ep)
 				case 2: sprintf(status_line,"max decay2: %6.5f",mmax_all_decay2); break;
 				}
 			break;
-		case  8: sprintf(status_line,"max_mode: %d",max_mode); break;
-		case  9: sprintf(status_line,"grd1 RED: %3hhu %02X",cols[COL_GRD1].r,cols[COL_GRD1].r); break;
-		case 10: sprintf(status_line,"grd1 GRN: %3hhu %02X",cols[COL_GRD1].g,cols[COL_GRD1].g); break;
-		case 11: sprintf(status_line,"grd1 BLU: %3hhu %02X",cols[COL_GRD1].b,cols[COL_GRD1].b); break;
-		case 12: sprintf(status_line,"grd2 RED: %3hhu %02X",cols[COL_GRD2].r,cols[COL_GRD2].r); break;
-		case 13: sprintf(status_line,"grd2 GRN: %3hhu %02X",cols[COL_GRD2].g,cols[COL_GRD2].g); break;
-		case 14: sprintf(status_line,"grd2 BLU: %3hhu %02X",cols[COL_GRD2].b,cols[COL_GRD2].b); break;
-		case 15: sprintf(status_line,"mod  RED: %3hhu %02X",cols[COL_MOD ].r,cols[COL_MOD ].r); break;
-		case 16: sprintf(status_line,"mod  GRN: %3hhu %02X",cols[COL_MOD ].g,cols[COL_MOD ].g); break;
-		case 17: sprintf(status_line,"mod  BLU: %3hhu %02X",cols[COL_MOD ].b,cols[COL_MOD ].b); break;
-		case 18: sprintf(status_line,"inp  RED: %3hhu %02X",cols[COL_INP ].r,cols[COL_INP ].r); break;
-		case 19: sprintf(status_line,"inp  GRN: %3hhu %02X",cols[COL_INP ].g,cols[COL_INP ].g); break;
-		case 20: sprintf(status_line,"inp  BLU: %3hhu %02X",cols[COL_INP ].b,cols[COL_INP ].b); break;
-		case 21: sprintf(status_line,"FFT1 RED: %3hhu %02X",cols[COL_FFT1].r,cols[COL_FFT1].r); break;
-		case 22: sprintf(status_line,"FFT1 GRN: %3hhu %02X",cols[COL_FFT1].g,cols[COL_FFT1].g); break;
-		case 23: sprintf(status_line,"FFT1 BLU: %3hhu %02X",cols[COL_FFT1].b,cols[COL_FFT1].b); break;
-		case 24: sprintf(status_line,"FFT2 RED: %3hhu %02X",cols[COL_FFT2].r,cols[COL_FFT2].r); break;
-		case 25: sprintf(status_line,"FFT2 GRN: %3hhu %02X",cols[COL_FFT2].g,cols[COL_FFT2].g); break;
-		case 26: sprintf(status_line,"FFT2 BLU: %3hhu %02X",cols[COL_FFT2].b,cols[COL_FFT2].b); break;
-		case 27: sprintf(status_line,"out  RED: %3hhu %02X",cols[COL_OUT ].r,cols[COL_OUT ].r); break;
-		case 28: sprintf(status_line,"out  GRN: %3hhu %02X",cols[COL_OUT ].g,cols[COL_OUT ].g); break;
-		case 29: sprintf(status_line,"out  BLU: %3hhu %02X",cols[COL_OUT ].b,cols[COL_OUT ].b); break;
+		case  9: sprintf(status_line,"max_mode: %d",max_mode); break;
+		case 10: sprintf(status_line,"grd1 RED: %3hhu %02X",cols[COL_GRD1].r,cols[COL_GRD1].r); break;
+		case 11: sprintf(status_line,"grd1 GRN: %3hhu %02X",cols[COL_GRD1].g,cols[COL_GRD1].g); break;
+		case 12: sprintf(status_line,"grd1 BLU: %3hhu %02X",cols[COL_GRD1].b,cols[COL_GRD1].b); break;
+		case 13: sprintf(status_line,"grd2 RED: %3hhu %02X",cols[COL_GRD2].r,cols[COL_GRD2].r); break;
+		case 14: sprintf(status_line,"grd2 GRN: %3hhu %02X",cols[COL_GRD2].g,cols[COL_GRD2].g); break;
+		case 15: sprintf(status_line,"grd2 BLU: %3hhu %02X",cols[COL_GRD2].b,cols[COL_GRD2].b); break;
+		case 16: sprintf(status_line,"mod  RED: %3hhu %02X",cols[COL_MOD ].r,cols[COL_MOD ].r); break;
+		case 17: sprintf(status_line,"mod  GRN: %3hhu %02X",cols[COL_MOD ].g,cols[COL_MOD ].g); break;
+		case 18: sprintf(status_line,"mod  BLU: %3hhu %02X",cols[COL_MOD ].b,cols[COL_MOD ].b); break;
+		case 19: sprintf(status_line,"inp  RED: %3hhu %02X",cols[COL_INP ].r,cols[COL_INP ].r); break;
+		case 20: sprintf(status_line,"inp  GRN: %3hhu %02X",cols[COL_INP ].g,cols[COL_INP ].g); break;
+		case 21: sprintf(status_line,"inp  BLU: %3hhu %02X",cols[COL_INP ].b,cols[COL_INP ].b); break;
+		case 22: sprintf(status_line,"FFT1 RED: %3hhu %02X",cols[COL_FFT1].r,cols[COL_FFT1].r); break;
+		case 23: sprintf(status_line,"FFT1 GRN: %3hhu %02X",cols[COL_FFT1].g,cols[COL_FFT1].g); break;
+		case 24: sprintf(status_line,"FFT1 BLU: %3hhu %02X",cols[COL_FFT1].b,cols[COL_FFT1].b); break;
+		case 25: sprintf(status_line,"FFT2 RED: %3hhu %02X",cols[COL_FFT2].r,cols[COL_FFT2].r); break;
+		case 26: sprintf(status_line,"FFT2 GRN: %3hhu %02X",cols[COL_FFT2].g,cols[COL_FFT2].g); break;
+		case 27: sprintf(status_line,"FFT2 BLU: %3hhu %02X",cols[COL_FFT2].b,cols[COL_FFT2].b); break;
+		case 28: sprintf(status_line,"out  RED: %3hhu %02X",cols[COL_OUT ].r,cols[COL_OUT ].r); break;
+		case 29: sprintf(status_line,"out  GRN: %3hhu %02X",cols[COL_OUT ].g,cols[COL_OUT ].g); break;
+		case 30: sprintf(status_line,"out  BLU: %3hhu %02X",cols[COL_OUT ].b,cols[COL_OUT ].b); break;
 		}
 	}
 
@@ -1112,11 +1118,10 @@ void usage(FILE *fp)
 	fprintf(fp,"-fps <fps>   - set frame rate\n");
 	fprintf(fp,"-debug       - debug mode\n");
 	fprintf(fp,"-?/-h/--help - print help\n");
-	fprintf(fp,"-n <num>     - size of fft (def=1024 samples) - must be power of 2 & <=jack_frame_size\n");
+	fprintf(fp,"-n <num>     - size of fft (def=1024 samples) - must be power of 2 eg 128,256\n");
 	fprintf(fp,"-jack        - dont connect to jack\n");
 	fprintf(fp,"-rc          - specify an RC file to load/save\n");
 	fprintf(fp,"-noshm       - dont use X11 SHM\n");
-	fprintf(fp,"-lag         - set lag\n");
 	fprintf(fp,"-mono        - mono mode\n");
 	fprintf(fp,"\nXwindows key commands while running:\n");
 	fprintf(fp,"q,Q,^C,ESC   - quit\n");
@@ -1187,17 +1192,21 @@ int process_xevent(	XEvent *evt)
 
 	lin_rangex=(double)jack_sample_rate/(double)fft_size;
 	log_offx=log10(lin_rangex);
-	tmpd=(double)(fft_size/2)*(double)jack_sample_rate/(double)fft_size;
+
+	tmpd=(double)(fft_size/2-1)*(double)jack_sample_rate/(double)fft_size;
 	log_rangex=log10(tmpd)-log_offx;
-	log_rangex=512.0f/log_rangex;
+	log_rangex=510.0f/log_rangex;
+
 	tmpd=2.0f*(double)jack_sample_rate/(double)fft_size;
 	tmpd=log10(tmpd)-log_offx;
 	tmpd=tmpd*log_rangex;
 	lin_offx=tmpd;
-	tmpd=(double)(fft_size/2)*(double)jack_sample_rate/(double)fft_size;
+
+	tmpd=(double)(fft_size/2-1)*(double)jack_sample_rate/(double)fft_size;
 	log_rangex=log10(tmpd)-log_offx;
-	log_rangex=(512.0f-lin_offx)/log_rangex;
-//printf("lin_offx=%f lin_rangex=%f  log_offx=%f log_rangex=%f\n",lin_offx,lin_rangex,log_offx,log_rangex);
+	log_rangex=(510.0f-lin_offx)/log_rangex;
+
+//printf("PE:lin_offx=%f lin_rangex=%f  log_offx=%f log_rangex=%f\n",lin_offx,lin_rangex,log_offx,log_rangex);
 
 	if (debug) printf("process_xevent(*evt):\n");
 	switch (evt->type)
@@ -1337,7 +1346,6 @@ int process_xevent(	XEvent *evt)
 						{
 						freq=(double)i*(double)jack_sample_rate/(double)fft_size;
 						tmpf=real_mod_data[i];
-//								printf("E: mod_data[%d]=%f\n",i,tmpf);
 						if (tmpf==0.0f) sprintf(status_line,"%7.1f Hz -00 dB",freq);
 						else sprintf(status_line,"%7.1f Hz %3.1f dB",freq,(tmpf*24.0f)-24.0f);
 						draw_status_post();
@@ -1346,14 +1354,14 @@ int process_xevent(	XEvent *evt)
 				else if (BUT_MOD==2)
 					{
 					i=trans_butx(but_x);
-					if ((i>=0) && (i<=fft_size4))
+					if ((but_x>=4) && (but_x<260))
 						{
 						tmpf=log_to_lindB(audio_inp_gain);
 						if (tmpf<0.0f) sprintf(status_line,"inp gain: -00 dB");
 						else sprintf(status_line,"inp gain: %3.1f dB",(tmpf*24.0f)-24.0f);
 						draw_status_post();
 						}
-					else if ((i>=fft_size4) && (i<=fft_size2))
+					else if ((but_x>=261) && (but_x<=516))
 						{
 						tmpf=log_to_lindB(audio_out_gain);
 						if (tmpf<0.0f) sprintf(status_line,"out gain: -00 dB");
@@ -1364,14 +1372,17 @@ int process_xevent(	XEvent *evt)
 				else if ((BUT_FFT1==1) || (BUT_FFT2==1))
 					{
 					i=trans_butx(but_x);
-					if ((i>=0) && (i<=fft_size2))
+					if ((but_x>=4) && (but_x<=516))
 						{
 						if (BUT_X_LOG)
 							{
-							tmpd=(double)i-lin_offx;
-//									tmpd=(double)i;
-							tmpd=pow(10.0f,tmpd/log_rangex+log_offx);
-							i=(int)(tmpd/lin_rangex);
+							if (but_x-4<=512/fft_size2) i=0;
+							else
+								{
+								tmpd=(double)(but_x-4)-lin_offx;
+								tmpd=pow(10.0f,tmpd/log_rangex+log_offx);
+								i=1+(int)(tmpd/lin_rangex);
+								}
 							}
 						freq=(double)i*(double)jack_sample_rate/(double)fft_size;
 						sprintf(status_line,"%7.2f Hz",freq);
@@ -1499,10 +1510,11 @@ int process_xevent(	XEvent *evt)
 							break;
 						case 2: fft_freq_disp_comp++; break;
 						case 3: audio_data_window=(audio_data_window+1)%5; do_update_data_window=1; break;
-						case 4: fft_ave_ratio++; break;
-						case 5: smooth_func=(smooth_func+1)%3; break;
-						case 6: delay_bypass=(delay_bypass+1)%2; break;
-						case 7: 
+						case 4: audio_data_merge=(audio_data_merge+1)%3; break;
+						case 5: fft_ave_ratio++; break;
+						case 6: smooth_func=(smooth_func+1)%3; break;
+						case 7: delay_bypass=(delay_bypass+1)%2; break;
+						case 8: 
 							switch (max_mode)
 								{
 								case 0: mmax_all_decay0=mmax_all_decay0+0.0001f; if (mmax_all_decay0>1.0f) mmax_all_decay0=1.0f; break;
@@ -1510,7 +1522,7 @@ int process_xevent(	XEvent *evt)
 								case 2: mmax_all_decay2=mmax_all_decay2+0.0001f; if (mmax_all_decay2>1.0f) mmax_all_decay2=1.0f; break;
 								}
 							break;
-						case 8: max_mode=(max_mode+1)%3; break;
+						case 9: max_mode=(max_mode+1)%3; break;
 						default:
 							k=edit_param-8;
 							if (k%3==0) { cols[k/3].r=(cols[k/3].r+1)%256; printf("cols[%d].r=%3hhu %02X\n",k/3,cols[k/3].r,cols[k/3].r); }
@@ -1543,10 +1555,11 @@ int process_xevent(	XEvent *evt)
 							break;
 						case 2: if (fft_freq_disp_comp>0) fft_freq_disp_comp--; break;
 						case 3: audio_data_window=(audio_data_window+4)%5; do_update_data_window=1; break;
-						case 4: if (fft_ave_ratio>1) fft_ave_ratio--; break;
-						case 5: smooth_func=(smooth_func-1+3)%3; break;
-						case 6: delay_bypass=(delay_bypass+1)%2; break;
-						case 7: 
+						case 4: audio_data_merge=(audio_data_merge+2)%3; break;
+						case 5: if (fft_ave_ratio>1) fft_ave_ratio--; break;
+						case 6: smooth_func=(smooth_func-1+3)%3; break;
+						case 7: delay_bypass=(delay_bypass+1)%2; break;
+						case 8: 
 							switch (max_mode)
 								{
 								case 0: mmax_all_decay0=mmax_all_decay0-0.0001f; if (mmax_all_decay0<0.0f) mmax_all_decay0=0.0f; break;
@@ -1554,7 +1567,7 @@ int process_xevent(	XEvent *evt)
 								case 2: mmax_all_decay2=mmax_all_decay2-0.0001f; if (mmax_all_decay2<0.0f) mmax_all_decay2=0.0f; break;
 								}
 							break;
-						case 8: max_mode=(max_mode+2)%3; break;
+						case 9: max_mode=(max_mode+2)%3; break;
 						default:
 							k=edit_param-8;
 							if (k%3==0) { cols[k/3].r=(cols[k/3].r+255)%256; printf("cols[%d].r=%3hhu %02X\n",k/3,cols[k/3].r,cols[k/3].r); }
@@ -1648,7 +1661,7 @@ int process_xevent(	XEvent *evt)
 							if ((i>=0) && (i<fft_size2))
 								{
 								real_mod_data[i]=starty;
-//								printf("A: real_mod_data[%d]=%f\n",i,tmpf);
+//								printf("A: real_mod_data[%d]=%f\n",i,starty);
 								}
 							i++;
 							}
@@ -1658,19 +1671,19 @@ int process_xevent(	XEvent *evt)
 						{
 						startx=trans_butx(old_but_x);
 						endx  =trans_butx(but_x);
-						if (startx>endx) { i=endx; j=startx; inc=-1; }
-						else { i=startx; j=endx; inc=1; }
+						if (startx>endx) { i=endx;   j=startx; inc=-1; }
+						else             { i=startx; j=endx;   inc=1; }
 						starty=trans_buty(old_but_y);
 						endy  =trans_buty(but_y);
 						diff=(starty-endy);
-						diff=diff/(double)(i-j);
+						if (i-j!=0) diff=diff/(double)(i-j);
 						if (debug) printf("i=%d j=%d inc=%d diff=%f\n",i,j,inc,diff);
 						while (i<=j)
 							{
 							if ((i>=0) && (i<fft_size2))
 								{
-								if (inc<0) tmpf=endy + diff * (i-endx);
-								else tmpf=starty + diff * (i-startx);
+								if (inc<0) tmpf=  endy - diff * (i-endx);
+								else       tmpf=starty + diff * (i-startx);
 								real_mod_data[i]=tmpf;
 //								printf("B: real_mod_data[%d]=%f\n",j,tmpf);
 								}
@@ -1687,13 +1700,7 @@ int process_xevent(	XEvent *evt)
 						freq=(float)i*(float)jack_sample_rate/(float)fft_size;
 						if (but==1)
 							{
-							if (but_y>256+24) tmpf=-1.0;
-							else
-								{
-								tmpf=256-(but_y-24);
-								tmpf=tmpf/256;
-								tmpf=tmpf*max_mod;
-								}
+							tmpf=trans_buty(but_y);
 							real_mod_data[i]=tmpf;
 //							printf("C: real_mod_data[%d]=%f\n",i,tmpf);
 							if (tmpf==0.0f) sprintf(status_line,"%7.2f Hz: -00 dB",freq);
@@ -1793,7 +1800,7 @@ int main(int argc, char *argv[])
 	fd_set set;
 	char fname[256],t_str[256];
 	void *old_handler;
-	int CompletionType=0,i,ret=0,bye=0,use_jack=1,lag=1024,rc;
+	int CompletionType=0,i,j,ret=0,bye=0,use_jack=1;
 	long tmpl,ppid;
 
 	memset(&shminfo,0,sizeof(shminfo));
@@ -1825,15 +1832,6 @@ int main(int argc, char *argv[])
 			fft_size2=fft_size/2;
 			fft_size4=fft_size/4;
 			if (debug) printf("fft_size=%d samples\n",fft_size);
-			argc-=2;
-			argv+=2;
-			}
-		else if ((argc>2) && (strcmp(argv[1],"-lag")==0))
-			{
-			sprintf(t_str,"%s",argv[2]);
-			lag=atoi(t_str);
-			if (lag<0) lag=0;
-			if (debug) printf("lag=%d samples\n",lag);
 			argc-=2;
 			argv+=2;
 			}
@@ -1888,6 +1886,15 @@ int main(int argc, char *argv[])
 
 	fft_places=calc_places(fft_size);
 	if (debug) printf("fft_size=%d (%d)\n",fft_size,fft_places);
+	i=fft_places;
+	j=1;
+	while (i) { j=j<<1; i--; }
+	if (j!=fft_size)
+		{
+		fprintf(stderr,"xjackfreak: N must be power of 2 eg 32,64,.. \n");
+		        printf("xjackfreak: N must be power of 2 eg 32,64,.. \n");
+		exit(2);
+		}
 
 	ppid=(long)getpid();
 
@@ -1926,9 +1933,9 @@ int main(int argc, char *argv[])
 	if (use_jack)
 		{
 		sprintf(t_str,"xjackfreak-%ld",ppid);
-		if (connect_to_jack(t_str,lag,stereo_mode)) exit(1);
-		if (register_jack_ports(1+stereo_mode)) exit(1);
-		if (activate_jack()) exit(1);
+		if (connect_to_jack(t_str,stereo_mode)) exit(5);
+		if (register_jack_ports(1+stereo_mode)) exit(6);
+		if (activate_jack()) exit(7);
 		}
 	if (debug) printf("WN: win_width =%d win_height =%d\n",win_width,win_height);
 	sprintf(title,"xjackfreak-%ld",ppid);
@@ -1990,7 +1997,7 @@ int main(int argc, char *argv[])
 	if ((display_bits!=16) && (display_bits!=24) && (display_bits!=32))
 		{
 		fprintf(stderr,"Sorry, can only handle 16 or 24/32 bpp!\n");
-		exit(1);
+		exit(8);
 		}
 
 	if (debug) printf("Creating graphic context...\n");
@@ -2009,7 +2016,8 @@ int main(int argc, char *argv[])
 	xgcvalues2.background=black;
 	gc2=XCreateGC(dpy,win,GCForeground|GCBackground,&xgcvalues2);
 
-	xgcvalues3.foreground=0xede170;
+	xgcvalues3.foreground=0x0d010a;
+//	xgcvalues3.foreground=0xede1a0;
 //	xgcvalues3.foreground=white;
 	xgcvalues3.background=black;
 	gc3=XCreateGC(dpy,win,GCForeground|GCBackground,&xgcvalues3);
@@ -2082,7 +2090,7 @@ int main(int argc, char *argv[])
 			{
 			fprintf(stderr,"Couldn't allocate image buffer!\n");
 			if (dpy) XCloseDisplay(dpy);
-			exit(2);
+			exit(9);
 			}
 		if (debug) printf("Creating image im0...(%d x %d)\n",image_width,image_height);
 		im0=XCreateImage(dpy,vinfo.visual,vinfo.depth,ZPixmap,0,(char*)data0,image_width,image_height,32,0);
@@ -2094,7 +2102,7 @@ int main(int argc, char *argv[])
 			{
 			fprintf(stderr,"im0 seems to NULL! *** NO IMAGE BUFFER *** Bailing out...\n");
 			if (dpy) XCloseDisplay(dpy);
-			exit(3);
+			exit(10);
 			}
 		else
 			{
@@ -2106,7 +2114,7 @@ int main(int argc, char *argv[])
 	if (gmode==0)
 		{
 		fprintf(stderr,"[ERROR] graphics mode not set! Bailing out...\n");
-		exit(3);
+		exit(11);
 		}
 
 	if (vinfo.depth==24) graph_init(32);
@@ -2192,8 +2200,8 @@ int main(int argc, char *argv[])
 				XFlush(dpy);
 				FD_ZERO(&set);
 				FD_SET(ConnectionNumber(dpy),&set);
-				rc=select(ConnectionNumber(dpy)+1,&set,NULL,NULL,NULL);
-				if (rc==-1)
+				ret=select(ConnectionNumber(dpy)+1,&set,NULL,NULL,NULL);
+				if (ret==-1)
 					{
 					if (debug) perror("... select");
 					continue;

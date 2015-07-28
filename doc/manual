@@ -5,7 +5,7 @@ XJackFreak V1.0
 Copyright (C) 1996-2015  J.Davis dev@mirainet.org.uk   
 
 
-XJackFreak is audio analysis/EQ tool for Linux/Jack Audio Connection Kit.
+XJackFreak is audio analysis/EQ tool for GNU/Linux/Jack Audio Connection Kit.
 
 It can display the FFT of any input, modify it and output the result.
 
@@ -61,11 +61,10 @@ Command line controls:
 -fps <fps>   - set frame rate
 -debug       - debug mode
 -?/-h/--help - print help
--n <num>     - size of fft (def=1024 samples) - must be power of 2 & <=jack_frame_size
+-n <num>     - size of fft (def=1024 samples) - must be power of 2 and 4<N<=4096
 -jack        - dont connect to jack
 -rc          - specify an RC file to load/save
 -noshm       - dont use X11 SHM
--lag         - set lag
 -mono        - mono mode
 
 
@@ -73,7 +72,7 @@ Internal parameters:
 --------------------
 "display chan" - L or R if in stero mode
 "log rang"     - Y-axis range (in log mode)
-"freq comp"    - HF compenstio (for display only)
+"freq comp"    - HF compensation (for display only)
 
 "dwin"         - data window. Can slect one of Hann,Bartlett,Hann #2,Welch or square. Hann#2 is Hann^2.
 
@@ -109,3 +108,24 @@ Internal parameters:
 "out  RED"     - 
 "out  GRN"     - 
 "out  BLU"     - 
+
+
+Exit codes:
+-----------
+ 0: normal exit
+ 1: unknown command line arg
+ 2: fft_size is not power of 2
+ 3: cannot load a skin
+ 4: shm connect error trying to connect to X11
+ 5: cannot connect to jack
+ 6: cannot register jack ports
+ 7: cannot activate jack
+ 8: X11 is not in 16/24 or 32 bpp
+ 9: cannot malloc memory for back buffer
+10: have no back buffer
+11: wrong graphics mode
+12: jack shutdown was called
+13: bad buf_size or sample rate reported by jack
+14: jack frame size exceeds our maximum (8192)
+15: bad bit depth initializing draw library
+16: got bad format trying to initialize X11 visual

@@ -19,8 +19,8 @@
 *
 ****************************************************************************/
 
-#include <stdlib.h>
-#include <math.h>
+//#include <stdlib.h>
+//#include <math.h>
 
 //#define MAX_FFT_DATA_SIZE 8192
 //#define MAX_FFT_W_SIZE 4096
@@ -42,11 +42,11 @@ int calc_places(int x)
 	{
 	int k,count;
 
-	k = 1;
-	count = 0;
-	while  (k<x-1)
+	k=1;
+	count=0;
+	while (k<x-1)
 		{
-		k = k<<1;
+		k=k<<1;
 		count++;
 		}
 	return count;
