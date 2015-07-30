@@ -220,7 +220,7 @@ void draw_grid()
 
 int draw_rec_buf(int _frame,int _off)
 	{
-	int i,j,oldy,newy,idx,iframe=(fft_wr-1+FFT_BUF_MAX)%FFT_BUF_MAX;
+	int i,j,oldy,newy,idx,idx2,iframe=(fft_wr-1+FFT_BUF_MAX)%FFT_BUF_MAX;
 
 //	printf("draw_rec_buf(%d,%d)\n",_frame,_off);
 	blank_screen();
@@ -263,18 +263,23 @@ int draw_rec_buf(int _frame,int _off)
 		newy=disp_offy-(int)(inbuf[idx]*disp_mul);
 		if (BUT_GRID)
 			{
-			if (idx%fft_size2==0)
-				{
-				line(i,21,i,275,cols[COL_GRD2].r,cols[COL_GRD2].g,cols[COL_GRD2].b);
-				line(i,21,i,275,cols[COL_GRD2].r,cols[COL_GRD2].g,cols[COL_GRD2].b);
-				}
+			idx2=idx%fft_size2;
 			if (idx%jack_frame_size==0)
 				{
-				for (j=22;j<275;j=j+5)
-					{
-					line(i,j,i,j+1,cols[COL_GRD1].r,cols[COL_GRD1].g,cols[COL_GRD1].b);
-					line(i,j,i,j+1,cols[COL_GRD1].r,cols[COL_GRD1].g,cols[COL_GRD1].b);
-					}
+				line(i  ,21,i  ,275,cols[COL_GRD1].r,cols[COL_GRD1].g,cols[COL_GRD1].b);
+				line(i+1,21,i+1,275,cols[COL_GRD1].r,cols[COL_GRD1].g,cols[COL_GRD1].b);
+				}
+			else if (idx2==0)
+				{
+				for (j=22;j<275;j=j+5) line(i  ,j,i  ,j+2,cols[COL_GRD2].r,cols[COL_GRD2].g,cols[COL_GRD2].b);
+				}
+			else if (idx2==fft_size4-audio_knit_size)
+				{
+				for (j=85;j<211;j=j+5) line(i  ,j,i  ,j+2,cols[COL_GRD2].r,cols[COL_GRD2].g,cols[COL_GRD2].b);
+				}
+			else if (idx2==fft_size4+audio_knit_size)
+				{
+				for (j=85;j<211;j=j+5) line(i  ,j,i  ,j+2,cols[COL_GRD2].r,cols[COL_GRD2].g,cols[COL_GRD2].b);
 				}
 			}
 		line(i-1,oldy,i,newy,cols[COL_RINP].r,cols[COL_RINP].g,cols[COL_RINP].b);
@@ -781,6 +786,7 @@ int save_settings(char *fname)
 		case  4: fprintf(fp,"dmerge=4 (ave(a+v))\n"); break;
 		case  5: fprintf(fp,"dmerge=5 (ave(x+v))\n"); break;
 		case  6: fprintf(fp,"dmerge=6 (ave(a+x+v))\n"); break;
+		case  7: fprintf(fp,"dmerge=7 (xfade2))\n"); break;
 		}
 	fprintf(fp,"ave_ratio=%d\n",fft_ave_ratio);
 	fprintf(fp,"smooth_fn=%d\n",smooth_func);
@@ -1077,6 +1083,7 @@ void print_edit_param(int ep)
 				case  4: sprintf(status_line,"merge 4 ave(a+v)"); break;
 				case  5: sprintf(status_line,"merge 5 ave(x+v)"); break;
 				case  6: sprintf(status_line,"merge 6 ave(a+x+v)"); break;
+				case  7: sprintf(status_line,"merge 7 xfade2"); break;
 				}
 			break;
 		case  5: sprintf(status_line,"ave ratio: %d",fft_ave_ratio); break;
@@ -1537,7 +1544,7 @@ int process_xevent(	XEvent *evt)
 							break;
 						case 2: fft_freq_disp_comp++; break;
 						case 3: audio_data_window=(audio_data_window+1)%6; do_update_data_window=1; break;
-						case 4: audio_data_merge=(audio_data_merge+1)%7; break;
+						case 4: audio_data_merge=(audio_data_merge+1)%8; break;
 						case 5: fft_ave_ratio++; break;
 						case 6: smooth_func=(smooth_func+1)%3; break;
 						case 7: delay_bypass=(delay_bypass+1)%2; break;
@@ -1582,7 +1589,7 @@ int process_xevent(	XEvent *evt)
 							break;
 						case 2: if (fft_freq_disp_comp>0) fft_freq_disp_comp--; break;
 						case 3: audio_data_window=(audio_data_window+5)%6; do_update_data_window=1; break;
-						case 4: audio_data_merge=(audio_data_merge+6)%7; break;
+						case 4: audio_data_merge=(audio_data_merge+7)%8; break;
 						case 5: if (fft_ave_ratio>1) fft_ave_ratio--; break;
 						case 6: smooth_func=(smooth_func-1+3)%3; break;
 						case 7: delay_bypass=(delay_bypass+1)%2; break;

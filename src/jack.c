@@ -59,7 +59,8 @@ int   audio_ird=0,audio_iwr=0;				// audio in  rd/wr indexes
 int   audio_ord=0,audio_owr=0;				// audio out rd/wr indexes
 int 	audio_disp_ch=0;
 int	audio_data_window=0;						// start up with Hann
-int   audio_data_merge=0;						// start up with add
+int   audio_data_merge=7;						// start up with xfade2
+int   audio_knit_size=4;						// xfade2 xfade window size
 
 int audio_roff=0;
 
@@ -108,7 +109,7 @@ int output_mix_frame_stereo(jack_nframes_t nframes,void *arg)
 	void *in[2],*out[2];
 	int i,j,sz,frag_size,off,ioff,dist;
 	float *ptr1,*ptr2;
-	float tmpLr,tmpRr,tmpRi,tmpLi,tmpf1,tmpf2;
+	float tmpLr,tmpRr,tmpRi,tmpLi,tmpf1,tmpf2,tmpf3;
 
 	if (do_update_mod_data)
 		{
@@ -310,6 +311,7 @@ data merge:
  4 - ave(a+v)
  5 - ave(x+v)
  6 - ave(a+x+v)
+ 7 - xfade2
 */
 
 // merge first half: write second half
@@ -387,6 +389,40 @@ data merge:
 				tmpf2=tmpf2*2.0f+3.0f;
 				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff]+tmpf1*outr[j])/6.0f;
 				audio_out[1][ioff]=(tmpf2*audio_out[1][ioff]+tmpf1*outi[j])/6.0f;
+				}
+			}
+		else if (audio_data_merge==7)		// xfade2
+			{
+			audio_knit_size=fft_size/16;
+			for (j=0;j<fft_size4-audio_knit_size;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf2 = dwindow[fft_size2-j-1];
+				if (tmpf2>0.00001) tmpf2 = 1.0f/tmpf2;
+				audio_out[0][ioff]=tmpf2*audio_out[0][ioff];
+				audio_out[1][ioff]=tmpf2*audio_out[1][ioff];
+				}
+			for (j=fft_size4-audio_knit_size;j<fft_size4+audio_knit_size;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf2 = dwindow[fft_size2-j-1];
+				if (tmpf2>0.00001) tmpf2 = 1.0f/tmpf2;
+				tmpf1 = dwindow[j];
+				if (tmpf1>0.00001) tmpf1 = 1.0f/tmpf1;
+				tmpf3=(double)(j-fft_size4+audio_knit_size)/(double)(2*audio_knit_size);
+				tmpf1=tmpf1*tmpf3;
+				tmpf3=1.0f-tmpf3;
+				tmpf2=tmpf2*tmpf3;
+				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff] + tmpf1*outr[j]);
+				audio_out[1][ioff]=(tmpf2*audio_out[1][ioff] + tmpf1*outi[j]);
+				}
+			for (j=fft_size4+audio_knit_size;j<=fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf1 = dwindow[j];
+				if (tmpf1>0.00001) tmpf1 = 1.0f/tmpf1;
+				audio_out[0][ioff]=tmpf1*outr[j];
+				audio_out[1][ioff]=tmpf1*outi[j];
 				}
 			}
 
@@ -657,6 +693,32 @@ int output_mix_frame_mono(jack_nframes_t nframes,void *arg)
 				tmpf1=tmpf1*2.0f+3.0f;
 				tmpf2=tmpf2*2.0f+3.0f;
 				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff]+tmpf1*outr[j])/6.0f;
+				}
+			}
+		else if (audio_data_merge==7)		// xfade2
+			{
+			for (j=0;j<fft_size4-2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf2 = dwindow[fft_size2-j-1];
+				if (tmpf2>0.00001) tmpf2 = 1.0f/tmpf2;
+				audio_out[0][ioff]=tmpf2*audio_out[0][ioff];
+				}
+			for (j=fft_size4-2;j<fft_size4+2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf2 = dwindow[fft_size2-j-1];
+				if (tmpf2>0.00001) tmpf2 = 1.0f/tmpf2;
+				tmpf1 = dwindow[j];
+				if (tmpf1>0.00001) tmpf1 = 1.0f/tmpf1;
+				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff] + tmpf1*outr[j])/2.0f;
+				}
+			for (j=fft_size4+2;j<=fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf1 = dwindow[j];
+				if (tmpf1>0.00001) tmpf1 = 1.0f/tmpf1;
+				audio_out[0][ioff]=tmpf1*outr[j];
 				}
 			}
 
