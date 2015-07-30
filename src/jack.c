@@ -59,7 +59,7 @@ int   audio_ird=0,audio_iwr=0;				// audio in  rd/wr indexes
 int   audio_ord=0,audio_owr=0;				// audio out rd/wr indexes
 int 	audio_disp_ch=0;
 int	audio_data_window=0;						// start up with Hann
-int   audio_data_merge=0;						// 0=add o/p   1=xfade o/p   2=ave o/p
+int   audio_data_merge=0;						// start up with add
 
 int audio_roff=0;
 
@@ -293,6 +293,25 @@ int output_mix_frame_stereo(jack_nframes_t nframes,void *arg)
 // do inv_fft
 		inv_fast_fourier(fft_size,fft_places);
 
+/*
+data window:
+ 0 - Hann - cos
+ 1 - Bartlett - triangle
+ 2 - Hann#2 - cos ^ 2
+ 3 - Welch - 2nd degree poly
+ 4 - fft_size/2 square window
+ 5 - fft_size   square window
+
+data merge:
+ 0 - add
+ 1 - xfade
+ 2 - ave
+ 3 - ave(a+x)
+ 4 - ave(a+v)
+ 5 - ave(x+v)
+ 6 - ave(a+x+v)
+*/
+
 // merge first half: write second half
 		if (audio_data_merge==0)			// addition
 			{
@@ -323,6 +342,54 @@ int output_mix_frame_stereo(jack_nframes_t nframes,void *arg)
 				audio_out[1][ioff]=(audio_out[1][ioff]+outi[j])/2.0f;
 				}
 			}
+		else if (audio_data_merge==3)			// ave(a+x)
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf1=(double)j/(double)(fft_size2-1);
+				tmpf2=2.0f-tmpf1;
+				tmpf1=1.0f+tmpf1;
+				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff]+tmpf1*outr[j])/2.0f;
+				audio_out[1][ioff]=(tmpf2*audio_out[1][ioff]+tmpf1*outi[j])/2.0f;
+				}
+			}
+		else if (audio_data_merge==4)			// ave(a+v)
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				audio_out[0][ioff]=3.0f*(audio_out[0][ioff]+outr[j])/4.0f;
+				audio_out[1][ioff]=3.0f*(audio_out[1][ioff]+outi[j])/4.0f;
+				}
+			}
+		else if (audio_data_merge==5)			// ave(x+v)
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf1=(double)j/(double)(fft_size2-1);
+				tmpf2=1.0f-tmpf1;
+				tmpf1=tmpf1*2.0f+1.0f;
+				tmpf2=tmpf2*2.0f+1.0f;
+				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff]+tmpf1*outr[j])/4.0f;
+				audio_out[1][ioff]=(tmpf2*audio_out[1][ioff]+tmpf1*outi[j])/4.0f;
+				}
+			}
+		else if (audio_data_merge==6)			// ave(a+x+v)
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf1=(double)j/(double)(fft_size2-1);
+				tmpf2=1.0f-tmpf1;
+				tmpf1=tmpf1*2.0f+3.0f;
+				tmpf2=tmpf2*2.0f+3.0f;
+				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff]+tmpf1*outr[j])/6.0f;
+				audio_out[1][ioff]=(tmpf2*audio_out[1][ioff]+tmpf1*outi[j])/6.0f;
+				}
+			}
+
 		ioff=(audio_owr+fft_size4)%MAX_SFRAG_SIZE;
 		memcpy(&audio_out[0][ioff],&outr[fft_size2],fft_size);
 		memcpy(&audio_out[1][ioff],&outi[fft_size2],fft_size);
@@ -549,6 +616,50 @@ int output_mix_frame_mono(jack_nframes_t nframes,void *arg)
 				audio_out[0][ioff]=(audio_out[0][ioff]+outr[j])/2.0f;
 				}
 			}
+		else if (audio_data_merge==3)			// ave(a+x)
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf1=(double)j/(double)(fft_size2-1);
+				tmpf2=2.0f-tmpf1;
+				tmpf1=1.0f+tmpf1;
+				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff]+tmpf1*outr[j])/2.0f;
+				}
+			}
+		else if (audio_data_merge==4)			// ave(a+v)
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				audio_out[0][ioff]=3.0f*(audio_out[0][ioff]+outr[j])/4.0f;
+				}
+			}
+		else if (audio_data_merge==5)			// ave(x+v)
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf1=(double)j/(double)(fft_size2-1);
+				tmpf2=1.0f-tmpf1;
+				tmpf1=tmpf1*2.0f+1.0f;
+				tmpf2=tmpf2*2.0f+1.0f;
+				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff]+tmpf1*outr[j])/4.0f;
+				}
+			}
+		else if (audio_data_merge==6)			// ave(a+x+v)
+			{
+			for (j=0;j<fft_size2;j++)
+				{
+				ioff=(audio_owr+j-fft_size4+MAX_SFRAG_SIZE)%MAX_SFRAG_SIZE;
+				tmpf1=(double)j/(double)(fft_size2-1);
+				tmpf2=1.0f-tmpf1;
+				tmpf1=tmpf1*2.0f+3.0f;
+				tmpf2=tmpf2*2.0f+3.0f;
+				audio_out[0][ioff]=(tmpf2*audio_out[0][ioff]+tmpf1*outr[j])/6.0f;
+				}
+			}
+
 		ioff=(audio_owr+fft_size4)%MAX_SFRAG_SIZE;
 		memcpy(&audio_out[0][ioff],&outr[fft_size2],fft_size);
 		ioff=(audio_owr+fft_size2)%MAX_SFRAG_SIZE;
@@ -713,6 +824,7 @@ int activate_jack()
 // type: 2 - Hann#2 - cos ^ 2
 // type: 3 - Welch - 2nd degree poly
 // type: 4 - fft_size/2 square window
+// type: 5 - fft_size   square window
 void load_data_window(int type)
 	{
 	int j;
@@ -755,6 +867,13 @@ void load_data_window(int type)
 				{
 				if (j<fft_size4) dwindow[j]=0.0f;
 				else dwindow[j]=1.0f;
+//				printf("dwindow[%4d]=%f\n",j,dwindow[j]);
+				}
+			break;
+		case 5:	// fft_size   square window - full width of fft
+			for (j=0;j<fft_size2;j++)
+				{
+				dwindow[j]=1.0f;
 //				printf("dwindow[%4d]=%f\n",j,dwindow[j]);
 				}
 			break;

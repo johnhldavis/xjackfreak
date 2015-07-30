@@ -179,6 +179,7 @@ int fft_size=1024;
 int fft_size2=512;
 int fft_size4=256;
 int fft_places=10;
+int rct_size=1024;
 
 int disp_offy=148;
 //int disp_mul=128;
@@ -736,12 +737,20 @@ void print_mod()
 int save_settings(char *fname)
 	{
 	FILE *fp;
+	char _fname[256];
 	int i;
 	float tmpf,freq;
 	struct tm *tm_now;
 	struct timeval tv; 
 
-	if ((fp=fopen(fname,"w"))==NULL) return 1;
+	if (rct_size!=fft_size)
+		{
+		snprintf(_fname,256,"%s.%d",fname,fft_size);
+		fprintf(stderr,"xjackfreak: save_settings(%s): fft_size differs from currently loaded.\n",fname);
+		fprintf(stderr,"xjackfreak: so doing a save to [%s] instead.\n",_fname);
+		}
+	else snprintf(_fname,256,"%s",fname);
+	if ((fp=fopen(_fname,"w"))==NULL) return 1;
 // date
 	gettimeofday(&tv,NULL);
 	tm_now=localtime((time_t*)&tv.tv_sec);
@@ -761,12 +770,17 @@ int save_settings(char *fname)
 		case 2: fprintf(fp,"dwin=2 (Hann #2)\n"); break;
 		case 3: fprintf(fp,"dwin=3 (Welch)\n");
 		case 4: fprintf(fp,"dwin=4 (square)\n");
+		case 5: fprintf(fp,"dwin=5 (square-wide)\n");
 		}
 	switch (audio_data_merge)
 		{
-		case 0: fprintf(fp,"dmerge=0 (add)\n"); break;
-		case 1: fprintf(fp,"dmerge=1 (xfade)\n"); break;
-		case 2: fprintf(fp,"dmerge=2 (ave)\n"); break;
+		case  0: fprintf(fp,"dmerge=0 (add)\n"); break;
+		case  1: fprintf(fp,"dmerge=1 (xfade)\n"); break;
+		case  2: fprintf(fp,"dmerge=2 (ave)\n"); break;
+		case  3: fprintf(fp,"dmerge=3 (ave(a+x))\n"); break;
+		case  4: fprintf(fp,"dmerge=4 (ave(a+v))\n"); break;
+		case  5: fprintf(fp,"dmerge=5 (ave(x+v))\n"); break;
+		case  6: fprintf(fp,"dmerge=6 (ave(a+x+v))\n"); break;
 		}
 	fprintf(fp,"ave_ratio=%d\n",fft_ave_ratio);
 	fprintf(fp,"smooth_fn=%d\n",smooth_func);
@@ -808,7 +822,7 @@ int load_settings(char *fname)
 	FILE *fp;
 	double tmpf;
 	char *ptr,*ptr2,t_str[256];
-	int num,idx,new_fft_size;
+	int num,idx,load=0;
 
 	if ((fp=fopen(fname,"r"))==NULL) return 1;
 	while (!feof(fp))
@@ -818,7 +832,13 @@ int load_settings(char *fname)
 			{
 			*ptr=0;
 			ptr++;
-			if (strcmp(t_str,"fft_size")==0)       { new_fft_size=atoi(ptr);       if (debug) printf("READ: fft_size=%d\n",new_fft_size); }
+			if (strcmp(t_str,"fft_size")==0)
+				{
+				rct_size=atoi(ptr);
+				if (debug) printf("READ: fft_size=%d\n",rct_size);
+				if (rct_size==fft_size) load=1;
+				else fprintf(stderr,"xjackfreak: load_settings(%s): fft_size differs (%d) from current (%d): will not load mod_data[]!\n",fname,rct_size,fft_size);
+				}
 			if (strcmp(t_str,"display_ch")==0)     { audio_disp_ch=atoi(ptr);      if (debug) printf("READ: display_ch=%d\n",audio_disp_ch); }
 			if (strcmp(t_str,"log_range")==0)      { log_rangey=atof(ptr);         if (debug) printf("READ: log_range=%f\n",log_rangey); }
 			if (strcmp(t_str,"freq_comp")==0)      { fft_freq_disp_comp=atoi(ptr); if (debug) printf("READ: freq_comp=%d\n",fft_freq_disp_comp); }
@@ -840,7 +860,6 @@ int load_settings(char *fname)
 			if (strcmp(t_str,"FFT1 _RGB")==0)      { idx=COL_FFT1; cols[idx].r=atoi(ptr); if ((ptr=strstr(ptr,","))!=NULL) { ptr++; cols[idx].g=atoi(ptr); if ((ptr=strstr(ptr,","))!=NULL) { ptr++; cols[idx].b=atoi(ptr); }}}
 			if (strcmp(t_str,"FFT2 _RGB")==0)      { idx=COL_FFT2; cols[idx].r=atoi(ptr); if ((ptr=strstr(ptr,","))!=NULL) { ptr++; cols[idx].g=atoi(ptr); if ((ptr=strstr(ptr,","))!=NULL) { ptr++; cols[idx].b=atoi(ptr); }}}
 			if (strcmp(t_str,"outputRGB")==0)      { idx=COL_OUT;  cols[idx].r=atoi(ptr); if ((ptr=strstr(ptr,","))!=NULL) { ptr++; cols[idx].g=atoi(ptr); if ((ptr=strstr(ptr,","))!=NULL) { ptr++; cols[idx].b=atoi(ptr); }}}
-
 			if ((ptr2=strstr(t_str,"mod_data["))==t_str)
 				{
 				ptr2=ptr2+9;
@@ -849,9 +868,12 @@ int load_settings(char *fname)
 				if (debug) printf("READ: found mod_data[]: num=%d value=%f ",num,tmpf);
 				if ((num>=0) && (num<MAX_FFT_DATA_SIZE))
 					{
-					mod_data[num]=tmpf;
-					real_mod_data[num]=log_to_lindB(tmpf);
-					if (debug) printf("loaded mod_data[%d]=%f\n",num,mod_data[num]);
+					if (load>0)
+						{
+						mod_data[num]=tmpf;
+						real_mod_data[num]=log_to_lindB(tmpf);
+						if (debug) printf("loaded mod_data[%d]=%f\n",num,mod_data[num]);
+						}
 					}
 				else printf("\n");
 				}
@@ -1037,19 +1059,24 @@ void print_edit_param(int ep)
 		case  3:
 			switch (audio_data_window)
 				{
-				case 0: sprintf(status_line,"dw:0 Hann (cos)"); break;
-				case 1: sprintf(status_line,"dw:1 Bartlett (tri)"); break;
-				case 2: sprintf(status_line,"dw:2 Hann#2 (cos^2)"); break;
-				case 3: sprintf(status_line,"dw:3 Welch (N^2 poly)"); break;
-				case 4: sprintf(status_line,"dw:4 square"); break;
+				case 0: sprintf(status_line,"win0 Hann (cos)"); break;
+				case 1: sprintf(status_line,"win1 Bartlett (tri)"); break;
+				case 2: sprintf(status_line,"win2 Hann#2 (cos^2)"); break;
+				case 3: sprintf(status_line,"win3 Welch (N^2 poly)"); break;
+				case 4: sprintf(status_line,"win4 square"); break;
+				case 5: sprintf(status_line,"win4 square:wide"); break;
 				}
 			break;
 		case  4:
 			switch (audio_data_merge)
 				{
-				case 0: sprintf(status_line,"dmerge: 0: add"); break;
-				case 1: sprintf(status_line,"dmerge: 1: xfade"); break;
-				case 2: sprintf(status_line,"dmerge: 2: ave"); break;
+				case  0: sprintf(status_line,"merge 0 add"); break;
+				case  1: sprintf(status_line,"merge 1 xfade"); break;
+				case  2: sprintf(status_line,"merge 2 ave"); break;
+				case  3: sprintf(status_line,"merge 3 ave(a+x)"); break;
+				case  4: sprintf(status_line,"merge 4 ave(a+v)"); break;
+				case  5: sprintf(status_line,"merge 5 ave(x+v)"); break;
+				case  6: sprintf(status_line,"merge 6 ave(a+x+v)"); break;
 				}
 			break;
 		case  5: sprintf(status_line,"ave ratio: %d",fft_ave_ratio); break;
@@ -1509,8 +1536,8 @@ int process_xevent(	XEvent *evt)
 								}
 							break;
 						case 2: fft_freq_disp_comp++; break;
-						case 3: audio_data_window=(audio_data_window+1)%5; do_update_data_window=1; break;
-						case 4: audio_data_merge=(audio_data_merge+1)%3; break;
+						case 3: audio_data_window=(audio_data_window+1)%6; do_update_data_window=1; break;
+						case 4: audio_data_merge=(audio_data_merge+1)%7; break;
 						case 5: fft_ave_ratio++; break;
 						case 6: smooth_func=(smooth_func+1)%3; break;
 						case 7: delay_bypass=(delay_bypass+1)%2; break;
@@ -1554,8 +1581,8 @@ int process_xevent(	XEvent *evt)
 								}
 							break;
 						case 2: if (fft_freq_disp_comp>0) fft_freq_disp_comp--; break;
-						case 3: audio_data_window=(audio_data_window+4)%5; do_update_data_window=1; break;
-						case 4: audio_data_merge=(audio_data_merge+2)%3; break;
+						case 3: audio_data_window=(audio_data_window+5)%6; do_update_data_window=1; break;
+						case 4: audio_data_merge=(audio_data_merge+6)%7; break;
 						case 5: if (fft_ave_ratio>1) fft_ave_ratio--; break;
 						case 6: smooth_func=(smooth_func-1+3)%3; break;
 						case 7: delay_bypass=(delay_bypass+1)%2; break;
@@ -1871,7 +1898,7 @@ int main(int argc, char *argv[])
 		else if (strcmp(argv[1],"-noshm")==0)
 			{
 			if (wmode==3) wmode=2;
-			printf("NO SHM!\n");
+			if (debug) printf("NO SHM!\n");
 			argc--;
 			argv++;
 			}
@@ -1921,14 +1948,14 @@ int main(int argc, char *argv[])
 // init FFT stuff
 	W_init(fft_size);
 
-	load_skin("/usr/local/etc/xjackfreak/led-grn-01.ppm");
-	load_skin("/usr/local/etc/xjackfreak/button03c.ppm");
-	load_skin("/usr/local/etc/xjackfreak/button04c.ppm");
-	load_skin("/usr/local/etc/xjackfreak/button05d.ppm");
-	load_skin("/usr/local/etc/xjackfreak/tributU01.ppm");
-	load_skin("/usr/local/etc/xjackfreak/tributD01.ppm");
-	load_skin("/usr/local/etc/xjackfreak/tributL01.ppm");
-	load_skin("/usr/local/etc/xjackfreak/tributR01.ppm");
+	load_skin(__PREFIX__"/etc/xjackfreak/led-grn-01.ppm");
+	load_skin(__PREFIX__"/etc/xjackfreak/button03c.ppm");
+	load_skin(__PREFIX__"/etc/xjackfreak/button04c.ppm");
+	load_skin(__PREFIX__"/etc/xjackfreak/button05d.ppm");
+	load_skin(__PREFIX__"/etc/xjackfreak/tributU01.ppm");
+	load_skin(__PREFIX__"/etc/xjackfreak/tributD01.ppm");
+	load_skin(__PREFIX__"/etc/xjackfreak/tributL01.ppm");
+	load_skin(__PREFIX__"/etc/xjackfreak/tributR01.ppm");
 // connect to jack
 	if (use_jack)
 		{
