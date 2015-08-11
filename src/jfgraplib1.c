@@ -245,10 +245,10 @@ void line(int x1,int y1,int x2,int y2,int r,int g,int b)
 
 	dx=x1-x2;
 	dy=y1-y2;
+	if ((dx==0) && (dy==0)) { dot1(x1,y1,r,g,b); return; }
 	if (dx==0)
 		{
-		if (dy==0) dot1(x1,y1,r,g,b);
-		else if (dy<0)
+		if (dy<0)
 			{
 			for (p=y1;p<=y2;p++) dot1(x1,p,r,g,b);
 			}
@@ -260,8 +260,7 @@ void line(int x1,int y1,int x2,int y2,int r,int g,int b)
 		}
 	if (dy==0)
 		{
-		if (dx==0) dot1(x1,y1,r,g,b);
-		else if (dx<0)
+		if (dx<0)
 			{
 			for (p=x1;p<=x2;p++) dot1(p,y1,r,g,b);
 			}
@@ -271,6 +270,16 @@ void line(int x1,int y1,int x2,int y2,int r,int g,int b)
 			}
 		return;
 		}
+
+// a dirty hack of an excuse for an early clip routine ..
+// large input values can really slow things down
+// assume we always draw line from left to right, up or down
+// x1 & x2 are normally constrained
+// if y1 or y2 is off the scale, then cull line
+
+	if (abs(y1)>1000) return;
+	if (abs(y2)>1000) return;
+
 	if (dx<0)
 		{
 		s=1;
@@ -341,5 +350,5 @@ void line(int x1,int y1,int x2,int y2,int r,int g,int b)
 			y1=y1+st;
 			dot1(x1,y1,r,g,b);
 			}
-		}		
+		}
 	}

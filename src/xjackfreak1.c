@@ -48,6 +48,9 @@
 
 #define FFT_FREQ_DISP_COMP 10
 
+#ifndef __PREFIX__
+#define "/usr/local"
+#endif
 
 #define BUT_BYPASS bon[ 0]		// bypass				orange
 #define BUT_GRID   bon[ 1]		// grid on/off			green
@@ -106,7 +109,7 @@ int  do_intro=1;
 int  disp_max=0;
 int  stereo_mode=1;
 int  edit_param=0;
-#define EDIT_PARAM_MAX 31
+#define EDIT_PARAM_MAX 32
 
 int old_but_x=0,old_but_y=0;
 
@@ -776,6 +779,7 @@ int save_settings(char *fname)
 		case 3: fprintf(fp,"dwin=3 (Welch)\n");
 		case 4: fprintf(fp,"dwin=4 (square)\n");
 		case 5: fprintf(fp,"dwin=5 (square-wide)\n");
+		case 6: fprintf(fp,"dwin=6 (1-Welch)\n");
 		}
 	switch (audio_data_merge)
 		{
@@ -788,6 +792,7 @@ int save_settings(char *fname)
 		case  6: fprintf(fp,"dmerge=6 (ave(a+x+v))\n"); break;
 		case  7: fprintf(fp,"dmerge=7 (xfade2))\n"); break;
 		}
+	fprintf(fp,"aknitsz=%d\n",audio_knit_size);
 	fprintf(fp,"ave_ratio=%d\n",fft_ave_ratio);
 	fprintf(fp,"smooth_fn=%d\n",smooth_func);
 	fprintf(fp,"delay_bypass=%d\n",delay_bypass);
@@ -850,6 +855,7 @@ int load_settings(char *fname)
 			if (strcmp(t_str,"freq_comp")==0)      { fft_freq_disp_comp=atoi(ptr); if (debug) printf("READ: freq_comp=%d\n",fft_freq_disp_comp); }
 			if (strcmp(t_str,"dwin")==0)           { audio_data_window=atoi(ptr);  if (debug) printf("READ: dwin=%d\n",audio_data_window); }
 			if (strcmp(t_str,"dmerge")==0)         { audio_data_merge=atoi(ptr);   if (debug) printf("READ: dmerge=%d\n",audio_data_merge); }
+			if (strcmp(t_str,"aknitsz")==0)			{ audio_knit_size=atoi(ptr);    if (debug) printf("READ: aknitsz=%d\n",audio_knit_size); }
 			if (strcmp(t_str,"ave_ratio")==0)      { fft_ave_ratio=atoi(ptr);      if (debug) printf("READ: ave_ratio=%d\n",fft_ave_ratio); }
 			if (strcmp(t_str,"smooth_fn")==0)      { smooth_func=atoi(ptr);        if (debug) printf("READ: smooth_func=%d\n",smooth_func); }
 			if (strcmp(t_str,"delay_bypass")==0)   { delay_bypass=atoi(ptr);       if (debug) printf("READ: delay_bypass=%d\n",delay_bypass); }
@@ -1070,7 +1076,8 @@ void print_edit_param(int ep)
 				case 2: sprintf(status_line,"win2 Hann#2 (cos^2)"); break;
 				case 3: sprintf(status_line,"win3 Welch (N^2 poly)"); break;
 				case 4: sprintf(status_line,"win4 square"); break;
-				case 5: sprintf(status_line,"win4 square:wide"); break;
+				case 5: sprintf(status_line,"win5 square:wide"); break;
+				case 6: sprintf(status_line,"win6 1-Welch"); break;
 				}
 			break;
 		case  4:
@@ -1086,10 +1093,11 @@ void print_edit_param(int ep)
 				case  7: sprintf(status_line,"merge 7 xfade2"); break;
 				}
 			break;
-		case  5: sprintf(status_line,"ave ratio: %d",fft_ave_ratio); break;
-		case  6: sprintf(status_line,"smooth fn: %d",smooth_func); break;
-		case  7: sprintf(status_line,"delay bypass: %d",delay_bypass); break;
-		case  8: 
+		case  5: sprintf(status_line,"knit size: %d",audio_knit_size); break;
+		case  6: sprintf(status_line,"ave ratio: %d",fft_ave_ratio); break;
+		case  7: sprintf(status_line,"smooth fn: %d",smooth_func); break;
+		case  8: sprintf(status_line,"delay bypass: %d",delay_bypass); break;
+		case  9: 
 			switch (max_mode)
 				{
 				case 0: sprintf(status_line,"max decay0: %6.5f",mmax_all_decay0); break;
@@ -1097,28 +1105,153 @@ void print_edit_param(int ep)
 				case 2: sprintf(status_line,"max decay2: %6.5f",mmax_all_decay2); break;
 				}
 			break;
-		case  9: sprintf(status_line,"max_mode: %d",max_mode); break;
-		case 10: sprintf(status_line,"grd1 RED: %3hhu %02X",cols[COL_GRD1].r,cols[COL_GRD1].r); break;
-		case 11: sprintf(status_line,"grd1 GRN: %3hhu %02X",cols[COL_GRD1].g,cols[COL_GRD1].g); break;
-		case 12: sprintf(status_line,"grd1 BLU: %3hhu %02X",cols[COL_GRD1].b,cols[COL_GRD1].b); break;
-		case 13: sprintf(status_line,"grd2 RED: %3hhu %02X",cols[COL_GRD2].r,cols[COL_GRD2].r); break;
-		case 14: sprintf(status_line,"grd2 GRN: %3hhu %02X",cols[COL_GRD2].g,cols[COL_GRD2].g); break;
-		case 15: sprintf(status_line,"grd2 BLU: %3hhu %02X",cols[COL_GRD2].b,cols[COL_GRD2].b); break;
-		case 16: sprintf(status_line,"mod  RED: %3hhu %02X",cols[COL_MOD ].r,cols[COL_MOD ].r); break;
-		case 17: sprintf(status_line,"mod  GRN: %3hhu %02X",cols[COL_MOD ].g,cols[COL_MOD ].g); break;
-		case 18: sprintf(status_line,"mod  BLU: %3hhu %02X",cols[COL_MOD ].b,cols[COL_MOD ].b); break;
-		case 19: sprintf(status_line,"inp  RED: %3hhu %02X",cols[COL_INP ].r,cols[COL_INP ].r); break;
-		case 20: sprintf(status_line,"inp  GRN: %3hhu %02X",cols[COL_INP ].g,cols[COL_INP ].g); break;
-		case 21: sprintf(status_line,"inp  BLU: %3hhu %02X",cols[COL_INP ].b,cols[COL_INP ].b); break;
-		case 22: sprintf(status_line,"FFT1 RED: %3hhu %02X",cols[COL_FFT1].r,cols[COL_FFT1].r); break;
-		case 23: sprintf(status_line,"FFT1 GRN: %3hhu %02X",cols[COL_FFT1].g,cols[COL_FFT1].g); break;
-		case 24: sprintf(status_line,"FFT1 BLU: %3hhu %02X",cols[COL_FFT1].b,cols[COL_FFT1].b); break;
-		case 25: sprintf(status_line,"FFT2 RED: %3hhu %02X",cols[COL_FFT2].r,cols[COL_FFT2].r); break;
-		case 26: sprintf(status_line,"FFT2 GRN: %3hhu %02X",cols[COL_FFT2].g,cols[COL_FFT2].g); break;
-		case 27: sprintf(status_line,"FFT2 BLU: %3hhu %02X",cols[COL_FFT2].b,cols[COL_FFT2].b); break;
-		case 28: sprintf(status_line,"out  RED: %3hhu %02X",cols[COL_OUT ].r,cols[COL_OUT ].r); break;
-		case 29: sprintf(status_line,"out  GRN: %3hhu %02X",cols[COL_OUT ].g,cols[COL_OUT ].g); break;
-		case 30: sprintf(status_line,"out  BLU: %3hhu %02X",cols[COL_OUT ].b,cols[COL_OUT ].b); break;
+		case 10: sprintf(status_line,"max_mode: %d",max_mode); break;
+		case 11: sprintf(status_line,"grd1 RED: %3hhu %02X",cols[COL_GRD1].r,cols[COL_GRD1].r); break;
+		case 12: sprintf(status_line,"grd1 GRN: %3hhu %02X",cols[COL_GRD1].g,cols[COL_GRD1].g); break;
+		case 13: sprintf(status_line,"grd1 BLU: %3hhu %02X",cols[COL_GRD1].b,cols[COL_GRD1].b); break;
+		case 14: sprintf(status_line,"grd2 RED: %3hhu %02X",cols[COL_GRD2].r,cols[COL_GRD2].r); break;
+		case 15: sprintf(status_line,"grd2 GRN: %3hhu %02X",cols[COL_GRD2].g,cols[COL_GRD2].g); break;
+		case 16: sprintf(status_line,"grd2 BLU: %3hhu %02X",cols[COL_GRD2].b,cols[COL_GRD2].b); break;
+		case 17: sprintf(status_line,"mod  RED: %3hhu %02X",cols[COL_MOD ].r,cols[COL_MOD ].r); break;
+		case 18: sprintf(status_line,"mod  GRN: %3hhu %02X",cols[COL_MOD ].g,cols[COL_MOD ].g); break;
+		case 19: sprintf(status_line,"mod  BLU: %3hhu %02X",cols[COL_MOD ].b,cols[COL_MOD ].b); break;
+		case 20: sprintf(status_line,"inp  RED: %3hhu %02X",cols[COL_INP ].r,cols[COL_INP ].r); break;
+		case 21: sprintf(status_line,"inp  GRN: %3hhu %02X",cols[COL_INP ].g,cols[COL_INP ].g); break;
+		case 22: sprintf(status_line,"inp  BLU: %3hhu %02X",cols[COL_INP ].b,cols[COL_INP ].b); break;
+		case 23: sprintf(status_line,"FFT1 RED: %3hhu %02X",cols[COL_FFT1].r,cols[COL_FFT1].r); break;
+		case 24: sprintf(status_line,"FFT1 GRN: %3hhu %02X",cols[COL_FFT1].g,cols[COL_FFT1].g); break;
+		case 25: sprintf(status_line,"FFT1 BLU: %3hhu %02X",cols[COL_FFT1].b,cols[COL_FFT1].b); break;
+		case 26: sprintf(status_line,"FFT2 RED: %3hhu %02X",cols[COL_FFT2].r,cols[COL_FFT2].r); break;
+		case 27: sprintf(status_line,"FFT2 GRN: %3hhu %02X",cols[COL_FFT2].g,cols[COL_FFT2].g); break;
+		case 28: sprintf(status_line,"FFT2 BLU: %3hhu %02X",cols[COL_FFT2].b,cols[COL_FFT2].b); break;
+		case 29: sprintf(status_line,"out  RED: %3hhu %02X",cols[COL_OUT ].r,cols[COL_OUT ].r); break;
+		case 30: sprintf(status_line,"out  GRN: %3hhu %02X",cols[COL_OUT ].g,cols[COL_OUT ].g); break;
+		case 31: sprintf(status_line,"out  BLU: %3hhu %02X",cols[COL_OUT ].b,cols[COL_OUT ].b); break;
+		}
+	}
+
+int change_edit_param(int ep,int dir)
+	{
+	int k;
+	float tmpf;
+
+	switch (ep)
+		{
+		case 0: audio_disp_ch=(audio_disp_ch+1)%2; break;
+		case 1:
+			if (dir>0)		// INC
+				{
+				log_rangey=change_log_rangey(log_rangey,-1);
+				BUT_DOWN=1;
+				if (log_rangey>-10.0f) { log_rangey=-10.0f; BUT_UP=0; }
+				}
+			else				// DEC
+				{
+				log_rangey=change_log_rangey(log_rangey,1);
+				BUT_UP=1;
+				if (log_rangey<=-5010.0f) { log_rangey=-5010.0f; BUT_DOWN=0; }
+				}
+			if (debug) { printf("log_rangey=%3.3f\n",log_rangey); fflush(stdout); }
+			break;
+		case 2: 
+			if (dir>0) fft_freq_disp_comp++;
+			else { if (fft_freq_disp_comp>0) fft_freq_disp_comp--; }
+			break;
+		case 3: audio_data_window=(audio_data_window+7+dir)%7; do_update_data_window=1; break;
+		case 4: audio_data_merge=(audio_data_merge+8+dir)%8; break;
+		case 5: audio_knit_size=(audio_knit_size+fft_size4+1+dir)%(fft_size4+1); break;
+		case 6: if (dir>0) fft_ave_ratio++; else { if (fft_ave_ratio>1) fft_ave_ratio--; } break;
+		case 7: smooth_func=(smooth_func+3+dir)%3; break;
+		case 8: delay_bypass=(delay_bypass+2+dir)%2; break;
+		case 9: 
+			if (dir>0) tmpf=0.0001f; else tmpf=-0.0001f;
+			switch (max_mode)
+				{
+				case 0: mmax_all_decay0=mmax_all_decay0+tmpf; if (mmax_all_decay0<0.0f) mmax_all_decay0=0.0f; if (mmax_all_decay0>1.0f) mmax_all_decay0=1.0f; break;
+				case 1: mmax_all_decay1=mmax_all_decay1+tmpf; if (mmax_all_decay1<0.0f) mmax_all_decay1=0.0f; if (mmax_all_decay1>1.0f) mmax_all_decay1=1.0f; break;
+				case 2: mmax_all_decay2=mmax_all_decay2+tmpf; if (mmax_all_decay2<0.0f) mmax_all_decay2=0.0f; if (mmax_all_decay2>1.0f) mmax_all_decay2=1.0f; break;
+				}
+			break;
+		case 10: max_mode=(max_mode+1)%3; break;
+		default:
+			if (dir<0) dir=255; else dir=1;
+			k=ep-11;
+			     if (k%3==0) { cols[k/3].r=(cols[k/3].r+dir)%256; printf("cols[%d].r=%3hhu %02X\n",k/3,cols[k/3].r,cols[k/3].r); }
+			else if (k%3==1) { cols[k/3].g=(cols[k/3].g+dir)%256; printf("cols[%d].g=%3hhu %02X\n",k/3,cols[k/3].g,cols[k/3].g); }
+			else             { cols[k/3].b=(cols[k/3].b+dir)%256; printf("cols[%d].b=%3hhu %02X\n",k/3,cols[k/3].b,cols[k/3].b); }
+			break;
+		}
+	return 0;
+	}
+
+void print_button_param(int bp)
+	{
+	switch (bp)
+		{
+		case 0:
+			if (bon[bp]) sprintf(status_line,"bypass ON");
+			else sprintf(status_line,"bypass OFF");
+			break;
+		case 1:
+			if (bon[bp]) sprintf(status_line,"grid ON");
+			else sprintf(status_line,"grid OFF");
+			break;
+		case 2:
+			if (bon[bp]) sprintf(status_line,"display MOD ON");
+			else sprintf(status_line,"display MOD OFF");
+			break;
+		case 3:
+			if (bon[bp]) sprintf(status_line,"phase ON");
+			else sprintf(status_line,"phase OFF");
+			break;
+		case 4:
+			if (bon[bp]) sprintf(status_line,"input wave ON");
+			else sprintf(status_line,"input wave OFF");
+			break;
+		case 5:
+			if (bon[bp]) sprintf(status_line,"input FFT ON");
+			else sprintf(status_line,"input FFT OFF");
+			break;
+		case 6:
+			if (bon[bp]) sprintf(status_line,"output FFT ON");
+			else sprintf(status_line,"output FFT OFF");
+			break;
+		case 7:
+			if (bon[bp]) sprintf(status_line,"output wave ON");
+			else sprintf(status_line,"output wave OFF");
+			break;
+		case 8:
+			if (bon[bp]) sprintf(status_line,"X log");
+			else sprintf(status_line,"X lin");
+			break;
+		case 9:
+			if (bon[bp]) sprintf(status_line,"Y log");
+			else sprintf(status_line,"Y lin");
+			break;
+		case 10:
+			if (bon[bp]) sprintf(status_line,"ave FFT ON");
+			else sprintf(status_line,"ave FFT OFF");
+			break;
+		case 11:
+			if (bon[bp]) sprintf(status_line,"block mode");
+			else sprintf(status_line,"line mode");
+			break;
+		case 12:
+			if (bon[bp]) sprintf(status_line,"freq comp ON");
+			else sprintf(status_line,"freq comp OFF");
+			break;
+		case 13:
+			if (bon[bp]) sprintf(status_line,"link ON");
+			else sprintf(status_line,"link OFF");
+//			do_update_fft_filter=1;
+			break;
+		case 14: sprintf(status_line,"smooth"); break;
+		case 15: sprintf(status_line,"reset"); break;
+		case 16:
+			if (BUT_FFT1) sprintf(status_line,"draw FFT frame");
+			else          sprintf(status_line,"draw rec-buf");
+			break;
+		case 17: break;
 		}
 	}
 
@@ -1220,7 +1353,7 @@ int process_xevent(	XEvent *evt)
 	{
 	KeySym keysym;
 	char c;
-	int i,j,k,ret=0,but,but_x,but_y,but_ch,startx,endx,inc;
+	int i,j,ret=0,but,but_x,but_y,but_ch,startx,endx,inc;
 	double freq,tmpf,diff,starty,endy;
 	double tmpd,lin_rangex,lin_offx,log_rangex,log_offx;
 
@@ -1424,6 +1557,15 @@ int process_xevent(	XEvent *evt)
 						}
 					}
 				}
+			else if ((but_x>=4) && (but_x<520) && (but_y>4) && (but_y<24))
+				{
+				if (!BUT_RECBUF)
+					{
+					if (but_ch>16) print_edit_param(edit_param);
+					else print_button_param(but_ch);
+					draw_status_post();
+					}
+				}
 			break;
 		case ButtonPress:
 			if (debug) printf("ButtonPress:\n");
@@ -1434,7 +1576,7 @@ int process_xevent(	XEvent *evt)
 			but_ch=(but_x-4)/18;
 			old_but_x=but_x;
 			old_but_y=but_y;
-//					if (debug) fprintf(stderr,"ButtonPress  : But=%d X=%d Y=%d CH=%d\n",but,but_x,but_y,but_ch);
+			if (debug) fprintf(stderr,"ButtonPress  : But=%d X=%d Y=%d CH=%d\n",but,but_x,but_y,but_ch);
 			break;
 		case ButtonRelease:
 			if (debug) printf("ButtonRelease:\n");
@@ -1443,7 +1585,7 @@ int process_xevent(	XEvent *evt)
 			but_y=evt->xbutton.y;
 			but_ch=(but_x-4)/18;
 			if (debug) printf("but=%d  but.x/y=%d/%d but_ch=%d\n",but,but_x,but_y,but_ch);
-			if ((but_ch>=0) && (but_ch<21) && (but_y>0) && (but_y<21))
+			if ((but_ch>=0) && (but_ch<21) && (but_y>2) && (but_y<21))
 				{
 				if (but_ch==14)	// SMOOTH
 					{
@@ -1525,91 +1667,13 @@ int process_xevent(	XEvent *evt)
 				else if (but_ch==19)	// UP
 					{
 					do_intro=0;
-					switch (edit_param)
-						{
-						case 0: audio_disp_ch=(audio_disp_ch+1)%2; break;
-						case 1:
-							log_rangey=change_log_rangey(log_rangey,-1);
-							BUT_DOWN=1;
-							if (log_rangey>-10.0f)
-								{
-								log_rangey=-10.0f;
-								BUT_UP=0;
-								}
-							if (debug)
-								{
-								printf("log_rangey=%3.3f\n",log_rangey);
-								fflush(stdout);
-								}
-							break;
-						case 2: fft_freq_disp_comp++; break;
-						case 3: audio_data_window=(audio_data_window+1)%6; do_update_data_window=1; break;
-						case 4: audio_data_merge=(audio_data_merge+1)%8; break;
-						case 5: fft_ave_ratio++; break;
-						case 6: smooth_func=(smooth_func+1)%3; break;
-						case 7: delay_bypass=(delay_bypass+1)%2; break;
-						case 8: 
-							switch (max_mode)
-								{
-								case 0: mmax_all_decay0=mmax_all_decay0+0.0001f; if (mmax_all_decay0>1.0f) mmax_all_decay0=1.0f; break;
-								case 1: mmax_all_decay1=mmax_all_decay1+0.0001f; if (mmax_all_decay1>1.0f) mmax_all_decay1=1.0f; break;
-								case 2: mmax_all_decay2=mmax_all_decay2+0.0001f; if (mmax_all_decay2>1.0f) mmax_all_decay2=1.0f; break;
-								}
-							break;
-						case 9: max_mode=(max_mode+1)%3; break;
-						default:
-							k=edit_param-8;
-							if (k%3==0) { cols[k/3].r=(cols[k/3].r+1)%256; printf("cols[%d].r=%3hhu %02X\n",k/3,cols[k/3].r,cols[k/3].r); }
-							else if (k%3==1) { cols[k/3].g=(cols[k/3].g+1)%256; printf("cols[%d].g=%3hhu %02X\n",k/3,cols[k/3].g,cols[k/3].g); }
-							else { cols[k/3].b=(cols[k/3].b+1)%256;  printf("cols[%d].b=%3hhu %02X\n",k/3,cols[k/3].b,cols[k/3].b); }
-							break;
-						}
-					do_intro=0;
+					change_edit_param(edit_param,1);
 					print_edit_param(edit_param);
 					}
 				else if (but_ch==20)	// DOWN
 					{
 					do_intro=0;
-					switch (edit_param)
-						{
-						case 0: audio_disp_ch=(audio_disp_ch+1)%2; break;
-						case 1:
-							log_rangey=change_log_rangey(log_rangey,1);
-							BUT_UP=1;
-							if (log_rangey<=-5010.0f)
-								{
-								log_rangey=-5010.0f;
-								BUT_DOWN=0;
-								}
-							if (debug)
-								{
-								printf("log_rangey=%3.3f\n",log_rangey);
-								fflush(stdout);
-								}
-							break;
-						case 2: if (fft_freq_disp_comp>0) fft_freq_disp_comp--; break;
-						case 3: audio_data_window=(audio_data_window+5)%6; do_update_data_window=1; break;
-						case 4: audio_data_merge=(audio_data_merge+7)%8; break;
-						case 5: if (fft_ave_ratio>1) fft_ave_ratio--; break;
-						case 6: smooth_func=(smooth_func-1+3)%3; break;
-						case 7: delay_bypass=(delay_bypass+1)%2; break;
-						case 8: 
-							switch (max_mode)
-								{
-								case 0: mmax_all_decay0=mmax_all_decay0-0.0001f; if (mmax_all_decay0<0.0f) mmax_all_decay0=0.0f; break;
-								case 1: mmax_all_decay1=mmax_all_decay1-0.0001f; if (mmax_all_decay1<0.0f) mmax_all_decay1=0.0f; break;
-								case 2: mmax_all_decay2=mmax_all_decay2-0.0001f; if (mmax_all_decay2<0.0f) mmax_all_decay2=0.0f; break;
-								}
-							break;
-						case 9: max_mode=(max_mode+2)%3; break;
-						default:
-							k=edit_param-8;
-							if (k%3==0) { cols[k/3].r=(cols[k/3].r+255)%256; printf("cols[%d].r=%3hhu %02X\n",k/3,cols[k/3].r,cols[k/3].r); }
-							else if (k%3==1) { cols[k/3].g=(cols[k/3].g+255)%256; printf("cols[%d].g=%3hhu %02X\n",k/3,cols[k/3].g,cols[k/3].g); }
-							else { cols[k/3].b=(cols[k/3].b+255)%256;  printf("cols[%d].b=%3hhu %02X\n",k/3,cols[k/3].b,cols[k/3].b); }
-							break;
-						}
-					do_intro=0;
+					change_edit_param(edit_param,-1);
 					print_edit_param(edit_param);
 					}
 				else
@@ -1617,66 +1681,22 @@ int process_xevent(	XEvent *evt)
 					do_intro=0;
 					if (but_ch==2) bon[but_ch]=(bon[but_ch]+1)%3;
 					else bon[but_ch]=(bon[but_ch]+1)%2;
-					switch (but_ch)
-						{
-						case 0:
-							if (bon[but_ch]) sprintf(status_line,"bypass ON");
-							else sprintf(status_line,"bypass OFF");
-							break;
-						case 1:
-							if (bon[but_ch]) sprintf(status_line,"grid ON");
-							else sprintf(status_line,"grid OFF");
-							break;
-						case 2:
-							if (bon[but_ch]) sprintf(status_line,"display MOD ON");
-							else sprintf(status_line,"display MOD OFF");
-							break;
-						case 3:
-							if (bon[but_ch]) sprintf(status_line,"phase ON");
-							else sprintf(status_line,"phase OFF");
-							break;
-						case 4:
-							if (bon[but_ch]) sprintf(status_line,"input wave ON");
-							else sprintf(status_line,"input wave OFF");
-							break;
-						case 5:
-							if (bon[but_ch]) sprintf(status_line,"input FFT ON");
-							else sprintf(status_line,"input FFT OFF");
-							break;
-						case 6:
-							if (bon[but_ch]) sprintf(status_line,"output FFT ON");
-							else sprintf(status_line,"output FFT OFF");
-							break;
-						case 7:
-							if (bon[but_ch]) sprintf(status_line,"output wave ON");
-							else sprintf(status_line,"output wave OFF");
-							break;
-						case 8:
-							if (bon[but_ch]) sprintf(status_line,"X log");
-							else sprintf(status_line,"X lin");
-							break;
-						case 9:
-							if (bon[but_ch]) sprintf(status_line,"Y log");
-							else sprintf(status_line,"Y lin");
-							break;
-						case 10:
-							if (bon[but_ch]) sprintf(status_line,"ave FFT ON");
-							else sprintf(status_line,"ave FFT OFF");
-							break;
-						case 11:
-							if (bon[but_ch]) sprintf(status_line,"block mode");
-							else sprintf(status_line,"line mode");
-							break;
-						case 12:
-							if (bon[but_ch]) sprintf(status_line,"freq comp ON");
-							else sprintf(status_line,"freq comp OFF");
-							break;
-						case 13:
-							if (bon[but_ch]) sprintf(status_line,"link ON");
-							else sprintf(status_line,"link OFF");
-//							do_update_fft_filter=1;
-							break;
-						}
+					print_button_param(but_ch);
+					}
+				}
+			else if ((but_x>385) && (but_x<515) && (but_y>2) && (but_y<21))
+				{
+				if (but==4) // UP
+					{
+					do_intro=0;
+					change_edit_param(edit_param,1);
+					print_edit_param(edit_param);
+					}
+				else if (but==5)	// DOWN
+					{
+					do_intro=0;
+					change_edit_param(edit_param,-1);
+					print_edit_param(edit_param);
 					}
 				}
 			else if ((!BUT_RECBUF) && (BUT_MOD==1) && (but_y>24) && (but_y<284))
@@ -1768,7 +1788,6 @@ int process_xevent(	XEvent *evt)
 				}
 			else if ((!BUT_RECBUF) && (BUT_MOD==2)  && (but_x<255) && (but_y>24) &&(but_y<284))
 				{
-//				printf("here...%d>%d ?\n",but_x,old_but_x);
 				if (but==1)
 					{
 					tmpf=trans_buty(but_y);
@@ -1808,7 +1827,7 @@ int process_xevent(	XEvent *evt)
 					set_output_gain(tmpf);
 					}
 				}
-			else if ((BUT_RECBUF) && (but_x>=0) && (but_x<512) && (but_y>21) &&(but_y<276)) draw_rec_buf_zoom(rec_frame,rec_off,but_x,but_y-20);
+			else if ((BUT_RECBUF) && (!BUT_FFT1) && (but_x>=0) && (but_x<512) && (but_y>21) &&(but_y<276)) draw_rec_buf_zoom(rec_frame,rec_off,but_x,but_y-20);
 			else do_intro=1;
 			if (debug) fprintf(stderr,"ButtonRelease: But=%d X=%d Y=%d CH=%d\n",but,but_x,but_y,but_ch);
 			pentry_add(2,0);
@@ -1866,6 +1885,8 @@ int main(int argc, char *argv[])
 			fft_size2=fft_size/2;
 			fft_size4=fft_size/4;
 			if (debug) printf("fft_size=%d samples\n",fft_size);
+			audio_knit_size=fft_size/16;
+			if (audio_knit_size<0) audio_knit_size=0;
 			argc-=2;
 			argv+=2;
 			}
